@@ -1,8 +1,11 @@
-import type { Metadata } from 'next'
-import { ShowcaseHome } from '@/components/showcase-home'
+import { redirect } from 'next/navigation'
+import { getAdminUser } from '@/lib/auth/admin'
 
-export const metadata: Metadata = { title: 'Project Showcase 2026', description: 'Student Cabinet Project Showcase team check-in portal.' }
-
-export default function HomePage() {
-  return <ShowcaseHome />
+export default async function RootPage() {
+  const user = await getAdminUser()
+  if (user) {
+    redirect('/admin')
+  } else {
+    redirect('/admin/login')
+  }
 }

@@ -1,7 +1,5 @@
-import { AdminConsole } from '@/components/admin/admin-console'
-import { readTeamSource } from '@/lib/attendance/source'
+import { redirect } from 'next/navigation'
 
-export default async function AbsentTeamsPage() {
-  const source = await readTeamSource()
-  return <AdminConsole source={source} view="absent" />
+export default function AbsentPage() {
+  redirect('/admin')
 }

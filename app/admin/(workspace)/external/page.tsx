@@ -1,7 +1,5 @@
-import { AdminConsole } from '@/components/admin/admin-console'
-import { readTeamSource } from '@/lib/attendance/source'
+import { redirect } from 'next/navigation'
 
-export default async function ExternalTeamsPage() {
-  const source = await readTeamSource()
-  return <AdminConsole source={source} view="external" />
+export default function ExternalPage() {
+  redirect('/admin')
 }

@@ -1,7 +1,11 @@
-import { AdminConsole } from '@/components/admin/admin-console'
-import { readTeamSource } from '@/lib/attendance/source'
+import { AttendanceManagement } from '@/components/admin/attendance-management'
 
-export default async function AttendancePage() {
-  const source = await readTeamSource()
-  return <AdminConsole source={source} view="all" />
+export const dynamic = 'force-dynamic'
+
+export const metadata = {
+  title: 'Attendance Management | Project Showcase',
+}
+
+export default function AttendancePage() {
+  return <AttendanceManagement />
 }

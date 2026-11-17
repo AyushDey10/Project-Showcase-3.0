@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import * as XLSX from 'xlsx-js-style'
-import { getAdminUser } from '@/lib/auth/admin'
+import { getAdminSession } from '@/lib/auth/admin'
 import { readTeamSource, type TeamRecord } from '@/lib/attendance/source'
 
 export const runtime = 'nodejs'
@@ -77,11 +77,22 @@ function jsonError(message: string, status: number) {
 }
 
 export async function GET(request: Request) {
-  const admin = await getAdminUser()
-  if (!admin) return jsonError('Admin authorization required.', 401)
+  const session = await getAdminSession()
+  if (!session) return jsonError('Admin authorization required.', 401)
 
+  const { profile } = session
   const { searchParams } = new URL(request.url)
-  const scope = searchParams.get('scope') ?? 'all'
+  let scope = searchParams.get('scope') ?? 'all'
+
+  // Restrict Regular Admins to their assigned desk
+  if (profile.role === 'admin') {
+    if (!profile.desk) {
+      return jsonError('No desk assigned to administrator.', 403)
+    }
+    // Force scope to admin's assigned desk
+    scope = profile.desk
+  }
+
   const allowedScopes = new Set(['all', 'internal', 'external', 'present', 'absent', 'filtered'])
   if (!allowedScopes.has(scope)) return jsonError('Invalid export selection.', 400)
 
@@ -89,7 +100,7 @@ export async function GET(request: Request) {
   if (source.issue || !source.configured) return jsonError('The registered team data source is not ready for export.', 503)
 
   const query = (searchParams.get('q') ?? '').trim().toLowerCase()
-  const categoryFilter = searchParams.get('category')
+  const categoryFilter = profile.role === 'admin' ? profile.desk : searchParams.get('category')
   const statusFilter = searchParams.get('status')?.toUpperCase()
   const filter = (teams: TeamRecord[]) => teams.filter((team) => {
     if (categoryFilter && team.category !== categoryFilter) return false
@@ -106,7 +117,7 @@ export async function GET(request: Request) {
   const workbook = XLSX.utils.book_new()
   let filename = 'Project_Showcase_Attendance_2026.xlsx'
 
-  if (scope === 'all') {
+  if (scope === 'all' && profile.role === 'super_admin') {
     XLSX.utils.book_append_sheet(workbook, toWorksheet(allTeams), 'All Teams')
     XLSX.utils.book_append_sheet(workbook, toWorksheet(internalTeams), 'Internal Teams')
     XLSX.utils.book_append_sheet(workbook, toWorksheet(externalTeams), 'External Teams')
@@ -121,7 +132,7 @@ export async function GET(request: Request) {
       absent: { teams: absentTeams, sheet: 'Absent Teams', filename: 'Project_Showcase_Absent_Teams_2026.xlsx' },
       filtered: { teams: allTeams, sheet: 'Filtered Results', filename: 'Project_Showcase_Filtered_Attendance_2026.xlsx' },
     }
-    const selected = tabs[scope]
+    const selected = tabs[scope] || tabs[profile.desk ?? 'internal']
     XLSX.utils.book_append_sheet(workbook, toWorksheet(selected.teams), selected.sheet)
     filename = selected.filename
   }

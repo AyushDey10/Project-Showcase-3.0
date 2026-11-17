@@ -29,7 +29,18 @@ export function AdminLogin() {
       setBusy(false)
       return
     }
-    if (data.user.app_metadata?.role !== 'admin') {
+    const { data: profile, error: profileError } = await supabase
+      .from('admin_profiles')
+      .select('role, is_active')
+      .eq('id', data.user.id)
+      .maybeSingle()
+
+    if (
+      profileError ||
+      !profile ||
+      !profile.is_active ||
+      !['admin', 'super_admin'].includes(profile.role)
+    ) {
       await supabase.auth.signOut()
       setError('This account is not authorized for admin access.')
       setBusy(false)
@@ -91,7 +102,9 @@ export function AdminLogin() {
               {busy ? 'SIGNING IN…' : <>SIGN IN <ArrowRight data-icon="inline-end" aria-hidden="true" /></>}
             </Button>
           </form>
-          <p className="mt-7 border-t border-[#eeeeea] pt-5 text-[11px] leading-5 text-[#85858d]">Admin access is restricted to accounts granted the server-managed <code className="rounded bg-[#f2f2ef] px-1 py-0.5 text-[10px]">role: admin</code> permission.</p>
+          <p className="mt-7 border-t border-[#eeeeea] pt-5 text-[11px] leading-5 text-[#85858d]">
+            Admin access is restricted to active accounts authorized by the Student Cabinet.
+          </p>
         </section>
       </div>
     </main>

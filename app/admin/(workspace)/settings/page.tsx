@@ -1,7 +1,12 @@
-import { AdminConsole } from '@/components/admin/admin-console'
-import { readTeamSource } from '@/lib/attendance/source'
+import { redirect } from 'next/navigation'
+import { requireAdminSession } from '@/lib/auth/admin'
 
-export default async function AdminSettingsPage() {
-  const source = await readTeamSource()
-  return <AdminConsole source={source} view="settings" />
+export default async function SettingsPage() {
+  const session = await requireAdminSession()
+
+  if (session.profile.role === 'super_admin') {
+    redirect('/admin/sheets')
+  }
+
+  redirect('/admin')
 }
