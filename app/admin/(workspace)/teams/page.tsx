@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { TeamsDirectory } from '@/components/admin/teams-directory'
-import { PageLoading } from '@/components/admin/loading-state'
+import { PageLoadingSkeleton } from '@/components/ui/skeleton'
 
 export const metadata: Metadata = {
   title: 'Team Directory — Project Showcase 3.0',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function TeamsPage() {
   return (
-    <Suspense fallback={<PageLoading message="Loading teams directory..." />}>
+    <Suspense fallback={<PageLoadingSkeleton rows={10} columns={7} />}>
       <TeamsDirectory />
     </Suspense>
   )

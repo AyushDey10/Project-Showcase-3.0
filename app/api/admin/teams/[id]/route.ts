@@ -32,9 +32,13 @@ export async function GET(
   const { id } = await params
   const supabase = createAdminClient()
 
+  // Only the columns the Team Details view actually renders (plus the desk
+  // fields used for authorisation) — avoids transferring unused team columns.
   const { data: team, error: teamError } = await supabase
     .from('teams')
-    .select('*')
+    .select(
+      'id, source_team_id, team_name, institution, project_title, project_domain, faculty_mentor, team_size, leader_name, leader_enrollment_no, leader_mobile, leader_email, panel_number, reporting_block, table_number, created_at, updated_at'
+    )
     .eq('id', id)
     .maybeSingle()
 

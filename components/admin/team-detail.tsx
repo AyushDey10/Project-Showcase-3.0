@@ -30,15 +30,29 @@ import {
   Plus,
   X,
   AlertCircle,
+  MapPin,
+  LayoutGrid,
+  Hash,
 } from 'lucide-react'
 import { PageContainer } from '@/components/admin/page-container'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { ConfirmDialog } from '@/components/admin/confirm-dialog'
-import { LoadingState, LoadingSpinner } from '@/components/admin/loading-state'
+import { LoadingSpinner } from '@/components/admin/loading-state'
+import { TeamDetailSkeleton } from '@/components/admin/team-detail-skeleton'
 import { ErrorState } from '@/components/admin/error-state'
 import { EmptyState } from '@/components/admin/empty-state'
 import { cn } from '@/lib/utils'
 import type { AdminProfile } from '@/lib/auth/admin'
+import { ReportingLocationPopup } from '@/components/admin/reporting-location-popup'
+import {
+  describeReportingLocationChange,
+  fetchTeamReportingLocation,
+  formatReportingLocation,
+  hasCompleteReportingLocation,
+  validateReportingLocation,
+  type ReportingLocation,
+  type ReportingLocationField,
+} from '@/lib/teams/reporting-location'
 
 export interface TeamData {
   id: string
@@ -53,6 +67,9 @@ export interface TeamData {
   leader_enrollment_no: string | null
   leader_mobile: string | null
   leader_email: string | null
+  panel_number: number | null
+  reporting_block: string | null
+  table_number: number | null
   created_at?: string
   updated_at?: string
 }
@@ -119,6 +136,38 @@ function formatDateTime(ts: string | null) {
     minute: '2-digit',
     hour12: true,
   })
+}
+
+function ReportingLocationTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType
+  label: string
+  value: string | number | null | undefined
+}) {
+  const assigned =
+    value !== null && value !== undefined && String(value).trim() !== ''
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-background/50 px-4 py-3">
+      <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+        <Icon size={12} />
+        {label}
+      </span>
+      <span
+        className={cn(
+          'mt-1 block tracking-tight',
+          assigned
+            ? 'text-2xl font-bold text-foreground'
+            : 'text-sm font-semibold text-muted-foreground/60'
+        )}
+      >
+        {assigned ? value : 'Not Assigned'}
+      </span>
+    </div>
+  )
 }
 
 const fieldDisplayConfig: Record<
@@ -190,6 +239,28 @@ export function TeamDetail({
   }
 
   const isSuperAdmin = currentAdmin?.role === 'super_admin'
+
+  // Reporting location popup (shown after a successful Reported checkpoint)
+  const [locationPopupOpen, setLocationPopupOpen] = useState(false)
+  const [locationPopupLoading, setLocationPopupLoading] = useState(false)
+  const [locationPopupError, setLocationPopupError] = useState<string | null>(null)
+  const [locationPopupLocation, setLocationPopupLocation] =
+    useState<ReportingLocation | null>(null)
+
+  // Super Admin reporting-location editor
+  const [editLocationOpen, setEditLocationOpen] = useState(false)
+  const [locationForm, setLocationForm] = useState({
+    panel_number: '',
+    reporting_block: '',
+    table_number: '',
+  })
+  const [locationFieldErrors, setLocationFieldErrors] = useState<
+    Partial<Record<ReportingLocationField, string>>
+  >({})
+  const [locationFormError, setLocationFormError] = useState<string | null>(null)
+  const [locationConfirmOpen, setLocationConfirmOpen] = useState(false)
+  const [pendingLocation, setPendingLocation] = useState<ReportingLocation | null>(null)
+  const [locationSaving, setLocationSaving] = useState(false)
 
   // Edit Team state
   const [editTeamOpen, setEditTeamOpen] = useState(false)
@@ -443,6 +514,8 @@ export function TeamDetail({
 
   // Execute verification update via POST /api/admin/verification
   const handleConfirmAction = async (reason?: string) => {
+    const actionField = dialogState.field
+    const actionValue = dialogState.targetValue
     setActionLoading(true)
     try {
       const payload = {
@@ -476,6 +549,11 @@ export function TeamDetail({
       setDialogState((prev) => ({ ...prev, isOpen: false }))
       // Refresh team data to display updated status and audit logs immediately
       await fetchTeamDetails()
+
+      // Only a successful Reported verification opens the location popup.
+      if (actionField === 'reported' && actionValue) {
+        void openReportingLocationPopup()
+      }
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : 'Action failed.')
     } finally {
@@ -483,21 +561,95 @@ export function TeamDetail({
     }
   }
 
+  const closeLocationPopup = () => {
+    setLocationPopupOpen(false)
+    setLocationPopupLoading(false)
+    setLocationPopupError(null)
+    setLocationPopupLocation(null)
+  }
+
+  const openReportingLocationPopup = async () => {
+    setLocationPopupOpen(true)
+    setLocationPopupLoading(true)
+    setLocationPopupError(null)
+    setLocationPopupLocation(null)
+
+    try {
+      const { location } = await fetchTeamReportingLocation(teamId)
+      setLocationPopupLoading(false)
+      setLocationPopupLocation(location)
+    } catch (err) {
+      setLocationPopupLoading(false)
+      setLocationPopupError(
+        err instanceof Error ? err.message : 'Could not load the reporting location.'
+      )
+    }
+  }
+
+  const handleOpenEditLocation = () => {
+    if (!team) return
+
+    setLocationForm({
+      panel_number: team.panel_number === null ? '' : String(team.panel_number),
+      reporting_block: team.reporting_block ?? '',
+      table_number: team.table_number === null ? '' : String(team.table_number),
+    })
+    setLocationFieldErrors({})
+    setLocationFormError(null)
+    setEditLocationOpen(true)
+  }
+
+  const handleSubmitLocation = (event: React.FormEvent) => {
+    event.preventDefault()
+
+    const validation = validateReportingLocation(locationForm)
+    if (!validation.ok || !validation.value) {
+      setLocationFieldErrors(validation.errors)
+      return
+    }
+
+    setLocationFieldErrors({})
+    setLocationFormError(null)
+    setPendingLocation(validation.value)
+    setLocationConfirmOpen(true)
+  }
+
+  const handleConfirmLocationSave = async () => {
+    if (!pendingLocation) return
+
+    setLocationSaving(true)
+    try {
+      const res = await fetch(`/api/admin/teams/${teamId}/reporting-location`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingLocation),
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update the reporting location.')
+      }
+
+      setLocationConfirmOpen(false)
+      setEditLocationOpen(false)
+      setPendingLocation(null)
+      setTeam((prev) =>
+        prev ? { ...prev, ...(data.location ?? pendingLocation) } : prev
+      )
+      showToast('success', 'Reporting location updated successfully.')
+      await fetchTeamDetails()
+    } catch (err) {
+      setLocationConfirmOpen(false)
+      setLocationFormError(
+        err instanceof Error ? err.message : 'Failed to update the reporting location.'
+      )
+    } finally {
+      setLocationSaving(false)
+    }
+  }
+
   if (loading) {
-    return (
-      <PageContainer
-        title="Team Details"
-        breadcrumbs={[
-          { label: 'Admin', href: '/admin' },
-          { label: 'Teams', href: '/admin/teams' },
-          { label: 'Loading...' },
-        ]}
-      >
-        <div className="py-20">
-          <LoadingState message="Loading team details and verification history..." />
-        </div>
-      </PageContainer>
-    )
+    return <TeamDetailSkeleton />
   }
 
   if (error || !team) {
@@ -705,6 +857,70 @@ export function TeamDetail({
               </div>
             </div>
           </div>
+        </section>
+
+        {/* 1b. Reporting Location */}
+        <section
+          aria-label="Reporting Location"
+          className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm"
+        >
+          <div className="flex flex-col gap-3 pb-4 border-b border-border/60 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <MapPin className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-semibold tracking-tight text-foreground">
+                  Reporting Location
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Where this team must report for evaluation. Volunteers see this when the team is marked Reported.
+                </p>
+              </div>
+            </div>
+
+            {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={handleOpenEditLocation}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-300 transition-all hover:bg-cyan-500/20 shadow-sm"
+              >
+                <Pencil size={13} />
+                <span>Edit Reporting Location</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-3 pt-4 sm:grid-cols-3">
+            <ReportingLocationTile
+              icon={LayoutGrid}
+              label="Panel Number"
+              value={team.panel_number}
+            />
+            <ReportingLocationTile
+              icon={MapPin}
+              label="Reporting Block"
+              value={team.reporting_block}
+            />
+            <ReportingLocationTile
+              icon={Hash}
+              label="Table Number"
+              value={team.table_number}
+            />
+          </div>
+
+          {hasCompleteReportingLocation(team) ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Direct this team to{' '}
+              <strong className="text-foreground">{formatReportingLocation(team)}</strong>{' '}
+              (Panel {team.panel_number}) for their evaluation.
+            </p>
+          ) : (
+            <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-amber-400">
+              <AlertTriangle size={13} />
+              Reporting location not assigned. Please contact the Super Admin.
+            </p>
+          )}
         </section>
 
         {/* 2. Three Independent Verification Controls */}
@@ -1185,8 +1401,13 @@ export function TeamDetail({
                   <tbody className="divide-y divide-border/60">
                     {activity.map((log) => {
                       const isVerified = Boolean(log.new_value)
+                      const isLocationUpdate = log.field_name === 'reporting_location'
                       const fieldCfg = fieldDisplayConfig[log.field_name as VerificationField]
-                      const checkpointLabel = fieldCfg ? fieldCfg.label : log.field_name
+                      const checkpointLabel = isLocationUpdate
+                        ? 'Reporting Location'
+                        : fieldCfg
+                        ? fieldCfg.label
+                        : log.field_name
 
                       return (
                         <tr key={log.event_no} className="transition-colors hover:bg-muted/30">
@@ -1199,11 +1420,17 @@ export function TeamDetail({
                             </span>
                           </td>
                           <td className="px-4 py-3.5">
-                            <StatusBadge
-                              type="action"
-                              action={isVerified ? 'verified' : 'reversed'}
-                              size="sm"
-                            />
+                            {isLocationUpdate ? (
+                              <StatusBadge variant="info" size="sm">
+                                Location Updated
+                              </StatusBadge>
+                            ) : (
+                              <StatusBadge
+                                type="action"
+                                action={isVerified ? 'verified' : 'reversed'}
+                                size="sm"
+                              />
+                            )}
                           </td>
                           <td className="px-4 py-3.5 font-mono text-xs text-foreground">
                             {log.admin_email || 'System'}
@@ -1445,6 +1672,186 @@ export function TeamDetail({
         </div>
       )}
 
+      {/* Edit Reporting Location Modal (Super Admin only) */}
+      {editLocationOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-location-title"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3
+                    id="edit-location-title"
+                    className="text-base font-semibold text-foreground"
+                  >
+                    Edit Reporting Location
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Team ID: {team.source_team_id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditLocationOpen(false)}
+                disabled={locationSaving}
+                aria-label="Close edit reporting location"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {locationFormError && (
+              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span>{locationFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitLocation} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="reporting-panel-number"
+                    className="block text-xs font-medium text-foreground mb-1"
+                  >
+                    Panel Number *
+                  </label>
+                  <input
+                    id="reporting-panel-number"
+                    type="number"
+                    min={1}
+                    max={99}
+                    step={1}
+                    required
+                    value={locationForm.panel_number}
+                    onChange={(e) =>
+                      setLocationForm({ ...locationForm, panel_number: e.target.value })
+                    }
+                    className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-emerald-500"
+                  />
+                  {locationFieldErrors.panel_number && (
+                    <p className="mt-1 text-[11px] text-rose-400">
+                      {locationFieldErrors.panel_number}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="reporting-table-number"
+                    className="block text-xs font-medium text-foreground mb-1"
+                  >
+                    Table Number *
+                  </label>
+                  <input
+                    id="reporting-table-number"
+                    type="number"
+                    min={1}
+                    max={999}
+                    step={1}
+                    required
+                    value={locationForm.table_number}
+                    onChange={(e) =>
+                      setLocationForm({ ...locationForm, table_number: e.target.value })
+                    }
+                    className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-emerald-500"
+                  />
+                  {locationFieldErrors.table_number && (
+                    <p className="mt-1 text-[11px] text-rose-400">
+                      {locationFieldErrors.table_number}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="reporting-block"
+                  className="block text-xs font-medium text-foreground mb-1"
+                >
+                  Reporting Block *
+                </label>
+                <input
+                  id="reporting-block"
+                  type="text"
+                  required
+                  maxLength={1}
+                  value={locationForm.reporting_block}
+                  onChange={(e) =>
+                    setLocationForm({
+                      ...locationForm,
+                      reporting_block: e.target.value.toUpperCase(),
+                    })
+                  }
+                  placeholder="e.g. A"
+                  className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-sm font-mono uppercase text-foreground focus:outline-none focus:border-emerald-500"
+                />
+                {locationFieldErrors.reporting_block && (
+                  <p className="mt-1 text-[11px] text-rose-400">
+                    {locationFieldErrors.reporting_block}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Only these three reporting-location fields are saved. Team name, project
+                details, verification checkpoints and attendance status are not modified.
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setEditLocationOpen(false)}
+                  disabled={locationSaving}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={locationSaving}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white transition disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                >
+                  <Check size={14} />
+                  <span>Review & Save</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Reporting Location Change */}
+      <ConfirmDialog
+        isOpen={locationConfirmOpen}
+        onClose={() => setLocationConfirmOpen(false)}
+        onConfirm={handleConfirmLocationSave}
+        title="Save Reporting Location"
+        description={
+          pendingLocation
+            ? `Update the reporting location for ${displayName}? ${describeReportingLocationChange(
+                {
+                  panel_number: team.panel_number ?? null,
+                  reporting_block: team.reporting_block ?? null,
+                  table_number: team.table_number ?? null,
+                },
+                pendingLocation
+              )}. Only the reporting location will change.`
+            : ''
+        }
+        confirmText="Save Location"
+        variant="warning"
+        loading={locationSaving}
+      />
+
       {/* Add / Edit Student Modal */}
       {studentModalMode && (
         <div
@@ -1577,6 +1984,16 @@ export function TeamDetail({
           </div>
         </div>
       )}
+
+      {/* Reporting Location Popup (after a successful Reported checkpoint) */}
+      <ReportingLocationPopup
+        isOpen={locationPopupOpen}
+        loading={locationPopupLoading}
+        error={locationPopupError}
+        team={team}
+        location={locationPopupLocation}
+        onClose={closeLocationPopup}
+      />
 
       {/* Delete Member Confirmation Dialog */}
       <ConfirmDialog

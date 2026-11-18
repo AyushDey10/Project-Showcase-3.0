@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { ActivityLog } from '@/components/admin/activity-log'
-import { PageLoading } from '@/components/admin/loading-state'
+import { PageLoadingSkeleton } from '@/components/ui/skeleton'
 
 export const metadata: Metadata = {
   title: 'Activity Logs — Project Showcase 3.0',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ActivityPage() {
   return (
-    <Suspense fallback={<PageLoading message="Loading audit and activity logs..." />}>
+    <Suspense fallback={<PageLoadingSkeleton rows={9} columns={6} />}>
       <ActivityLog />
     </Suspense>
   )

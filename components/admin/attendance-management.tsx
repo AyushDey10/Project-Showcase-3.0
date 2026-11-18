@@ -23,6 +23,12 @@ import {
 import { PageContainer } from '@/components/admin/page-container'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { EmptyState } from '@/components/admin/empty-state'
+import { ReportingLocationPopup } from '@/components/admin/reporting-location-popup'
+import { Skeleton, SkeletonRow } from '@/components/ui/skeleton'
+import {
+  fetchTeamReportingLocation,
+  type ReportingLocation,
+} from '@/lib/teams/reporting-location'
 import { cn } from '@/lib/utils'
 
 export type VerificationField = 'reported' | 'photo_id_checked' | 'noc_received'
@@ -145,6 +151,10 @@ export function AttendanceManagement() {
     return () => clearTimeout(timer)
   }, [search])
 
+  // Skeleton rows only on first visit; while a filter/page refetches, the
+  // previous rows stay on screen so the table never collapses.
+  const firstLoad = loading && teams.length === 0
+
   const fetchAttendance = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -183,11 +193,63 @@ export function AttendanceManagement() {
     fetchAttendance()
   }, [fetchAttendance])
 
+  // Reporting location popup: shown only after a Reported update succeeds
+  const [locationPopup, setLocationPopup] = useState<{
+    isOpen: boolean
+    loading: boolean
+    error: string | null
+    team: AttendanceTeam | null
+    location: ReportingLocation | null
+  }>({ isOpen: false, loading: false, error: null, team: null, location: null })
+
+  const closeLocationPopup = useCallback(() => {
+    setLocationPopup({
+      isOpen: false,
+      loading: false,
+      error: null,
+      team: null,
+      location: null,
+    })
+  }, [])
+
+  const openReportingLocationPopup = async (team: AttendanceTeam) => {
+    setLocationPopup({
+      isOpen: true,
+      loading: true,
+      error: null,
+      team,
+      location: null,
+    })
+
+    try {
+      const { location } = await fetchTeamReportingLocation(team.id)
+      setLocationPopup((prev) =>
+        prev.isOpen && prev.team?.id === team.id
+          ? { ...prev, loading: false, error: null, location }
+          : prev
+      )
+    } catch (err) {
+      setLocationPopup((prev) =>
+        prev.isOpen && prev.team?.id === team.id
+          ? {
+              ...prev,
+              loading: false,
+              error:
+                err instanceof Error
+                  ? err.message
+                  : 'Could not load the reporting location.',
+            }
+          : prev
+      )
+    }
+  }
+
   const executeVerification = async (
     teamId: string,
     field: VerificationField,
     newValue: boolean,
-    reason?: string
+    reason?: string,
+    team?: AttendanceTeam
   ) => {
     const actionKey = `${teamId}:${field}`
     if (pendingActions.has(actionKey)) return
@@ -217,6 +279,11 @@ export function AttendanceManagement() {
           ? `Verified ${field.replace('_', ' ')} successfully.`
           : `Reversed ${field.replace('_', ' ')} successfully.`
       )
+
+      // Only a successful Reported checkpoint opens the location popup.
+      if (field === 'reported' && newValue && team) {
+        void openReportingLocationPopup(team)
+      }
 
       // Optimistically update local team state or refresh
       setTeams((prev) =>
@@ -255,7 +322,7 @@ export function AttendanceManagement() {
       })
     } else {
       // Immediate verify
-      executeVerification(team.id, field, true)
+      executeVerification(team.id, field, true, undefined, team)
     }
   }
 
@@ -424,7 +491,16 @@ export function AttendanceManagement() {
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/60">
             <div>
-              <span className="font-medium text-foreground">{total} teams</span> found in current view
+              {firstLoad ? (
+                <Skeleton className="inline-block h-3 w-40 align-middle" />
+              ) : (
+                <>
+                  <span className="font-medium text-foreground">{total} teams</span> found in current view
+                  {loading && (
+                    <span className="ml-2 text-[11px] text-cyan-400">Updating…</span>
+                  )}
+                </>
+              )}
             </div>
             <div className="text-[11px] text-muted-foreground">
               Click any checkpoint button to verify or reverse status
@@ -432,11 +508,30 @@ export function AttendanceManagement() {
           </div>
         </div>
 
-        {/* Content Table / Cards */}
-        {loading ? (
-          <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
-            <RefreshCw size={24} className="animate-spin mx-auto mb-3 text-cyan-400" />
-            <p className="text-sm">Loading attendance checkpoints...</p>
+        {/* Content Table / Cards — the real header row paints before data lands */}
+        {firstLoad ? (
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm" aria-busy="true">
+                <thead>
+                  <tr className="border-b border-border/80 bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4 py-3.5 w-16">Team</th>
+                    <th className="px-4 py-3.5">Details</th>
+                    <th className="px-4 py-3.5">Desk</th>
+                    <th className="px-4 py-3.5 text-center">Reported</th>
+                    <th className="px-4 py-3.5 text-center">Photo ID</th>
+                    <th className="px-4 py-3.5 text-center">NOC</th>
+                    <th className="px-4 py-3.5 text-center">Status</th>
+                    <th className="px-4 py-3.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <SkeletonRow key={`skeleton-${index}`} columns={8} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : error ? (
           <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-rose-300">
@@ -666,6 +761,15 @@ export function AttendanceManagement() {
           </div>
         </div>
       )}
+
+      <ReportingLocationPopup
+        isOpen={locationPopup.isOpen}
+        loading={locationPopup.loading}
+        error={locationPopup.error}
+        team={locationPopup.team}
+        location={locationPopup.location}
+        onClose={closeLocationPopup}
+      />
     </PageContainer>
   )
 

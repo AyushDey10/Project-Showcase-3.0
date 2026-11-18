@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
@@ -20,7 +21,7 @@ export type AdminSession = {
   profile: AdminProfile
 }
 
-async function getAuthorizedSession(requiredRole?: 'super_admin'): Promise<AdminSession | null> {
+async function loadAdminSession(): Promise<AdminSession | null> {
   const supabase = await createClient()
 
   const {
@@ -72,10 +73,6 @@ async function getAuthorizedSession(requiredRole?: 'super_admin'): Promise<Admin
     return null
   }
 
-  if (requiredRole && profileData.role !== requiredRole) {
-    return null
-  }
-
   const role = profileData.role as AdminRole
   let desk: AdminDesk = null
 
@@ -101,22 +98,35 @@ async function getAuthorizedSession(requiredRole?: 'super_admin'): Promise<Admin
   }
 }
 
+/**
+ * Request-scoped session lookup.
+ *
+ * The workspace layout, the page it renders and any nested server component all
+ * need the same admin profile. Without memoisation each of them performs its own
+ * `auth.getUser()` round trip plus an `admin_profiles` query, which is the single
+ * largest cost of an admin navigation. `cache()` keeps exactly one lookup per
+ * request (and stays a plain function call in route handlers), so authorisation
+ * behaviour is unchanged while the redundant network work disappears.
+ */
+const getSessionOnce = cache(loadAdminSession)
+
+export async function getAdminSession(): Promise<AdminSession | null> {
+  return getSessionOnce()
+}
+
 export async function getAdminUser(): Promise<User | null> {
-  const session = await getAuthorizedSession()
+  const session = await getSessionOnce()
   return session ? session.user : null
 }
 
 export async function getSuperAdminUser(): Promise<User | null> {
-  const session = await getAuthorizedSession('super_admin')
-  return session ? session.user : null
-}
-
-export async function getAdminSession(): Promise<AdminSession | null> {
-  return getAuthorizedSession()
+  const session = await getSessionOnce()
+  if (!session || session.profile.role !== 'super_admin') return null
+  return session.user
 }
 
 export async function requireAdminSession(): Promise<AdminSession> {
-  const session = await getAdminSession()
+  const session = await getSessionOnce()
 
   if (!session) redirect('/admin/login')
 
@@ -124,7 +134,7 @@ export async function requireAdminSession(): Promise<AdminSession> {
 }
 
 export async function requireSuperAdminSession(): Promise<AdminSession> {
-  const session = await getAdminSession()
+  const session = await getSessionOnce()
 
   if (!session) redirect('/admin/login')
   if (session.profile.role !== 'super_admin') redirect('/admin')

@@ -30,7 +30,7 @@ import { PageContainer } from '@/components/admin/page-container'
 import { StatCard } from '@/components/admin/stat-card'
 import { StatusBadge } from '@/components/admin/status-badge'
 import { ConfirmDialog } from '@/components/admin/confirm-dialog'
-import { TableRowSkeleton } from '@/components/admin/loading-state'
+import { SkeletonCard, SkeletonTable } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/admin/empty-state'
 import { ErrorState } from '@/components/admin/error-state'
 import type { AdminProfile } from '@/lib/auth/admin'
@@ -379,36 +379,44 @@ export function AdminUsers({ currentAdmin }: AdminUsersProps) {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Admins"
-          value={stats.total}
-          iconName="users"
-          color="cyan"
-          subtext="Configured staff"
-        />
-        <StatCard
-          label="Super Admins"
-          value={stats.superAdmins}
-          iconName="shieldAlert"
-          color="violet"
-          subtext="Unrestricted access"
-        />
-        <StatCard
-          label="Internal Desk"
-          value={stats.internalAdmins}
-          iconName="buildingComplex"
-          color="cyan"
-          subtext="Bennett University"
-        />
-        <StatCard
-          label="External Desk"
-          value={stats.externalAdmins}
-          iconName="globe"
-          color="amber"
-          subtext="Other institutions"
-        />
+      {/* Stats Cards — skeleton tiles until the account list actually arrives */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-busy={loading}>
+        {loading && users.length === 0 ? (
+          Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonCard key={`stat-skeleton-${index}`} lines={1} />
+          ))
+        ) : (
+          <>
+            <StatCard
+              label="Total Admins"
+              value={stats.total}
+              iconName="users"
+              color="cyan"
+              subtext="Configured staff"
+            />
+            <StatCard
+              label="Super Admins"
+              value={stats.superAdmins}
+              iconName="shieldAlert"
+              color="violet"
+              subtext="Unrestricted access"
+            />
+            <StatCard
+              label="Internal Desk"
+              value={stats.internalAdmins}
+              iconName="buildingComplex"
+              color="cyan"
+              subtext="Bennett University"
+            />
+            <StatCard
+              label="External Desk"
+              value={stats.externalAdmins}
+              iconName="globe"
+              color="amber"
+              subtext="Other institutions"
+            />
+          </>
+        )}
       </div>
 
       {/* Search and Table Container */}
@@ -467,8 +475,8 @@ export function AdminUsers({ currentAdmin }: AdminUsersProps) {
         </div>
 
         {/* User Table */}
-        {loading ? (
-          <TableRowSkeleton rows={4} columns={6} />
+        {loading && users.length === 0 ? (
+          <SkeletonTable columns={6} rows={4} className="border-border/60" />
         ) : error ? (
           <ErrorState
             title="Failed to Load Administrators"

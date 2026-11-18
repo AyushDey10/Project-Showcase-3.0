@@ -23,10 +23,11 @@ import {
   Layers,
   Building2,
   Globe,
+  MapPin,
 } from 'lucide-react'
 import { PageContainer } from '@/components/admin/page-container'
 import { StatusBadge } from '@/components/admin/status-badge'
-import { LoadingSpinner, TableRowSkeleton } from '@/components/admin/loading-state'
+import { SkeletonTable } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/admin/empty-state'
 import { ErrorState } from '@/components/admin/error-state'
 import { cn } from '@/lib/utils'
@@ -80,10 +81,14 @@ function fieldDisplayName(f: string) {
   if (f === 'reported') return 'Reported'
   if (f === 'photo_id_checked') return 'Photo ID Checked'
   if (f === 'noc_received') return 'NOC Received'
+  if (f === 'reporting_location') return 'Reporting Location'
   return f
 }
 
-function getVerificationActionType(log: VerificationActivityLog): 'VERIFY' | 'REVERSE' | 'UNVERIFY' {
+function getVerificationActionType(
+  log: VerificationActivityLog
+): 'VERIFY' | 'REVERSE' | 'UNVERIFY' | 'LOCATION_UPDATE' {
+  if (log.field_name === 'reporting_location') return 'LOCATION_UPDATE'
   if (log.new_value) return 'VERIFY'
   if (log.reverse_log_id || log.reason) return 'REVERSE'
   return 'UNVERIFY'
@@ -353,6 +358,9 @@ export function ActivityLog() {
                     <option value="VERIFY">VERIFY (Status Confirmed)</option>
                     <option value="REVERSE">REVERSE (Action Reversed)</option>
                     <option value="UNVERIFY">UNVERIFY (Status Cleared)</option>
+                    <option value="LOCATION_UPDATE">
+                      LOCATION_UPDATE (Reporting Location Changed)
+                    </option>
                   </>
                 ) : (
                   <>
@@ -379,6 +387,7 @@ export function ActivityLog() {
                   <option value="reported">Reported</option>
                   <option value="photo_id_checked">Photo ID Checked</option>
                   <option value="noc_received">NOC Received</option>
+                  <option value="reporting_location">Reporting Location</option>
                 </select>
               </div>
             ) : (
@@ -451,15 +460,9 @@ export function ActivityLog() {
           />
         )}
 
-        {/* Loading State */}
+        {/* Loading State — same table shell the log will occupy */}
         {loading && !error && (
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-            <div className="flex items-center justify-center py-6 gap-2 text-xs text-muted-foreground">
-              <LoadingSpinner size={16} />
-              <span>Fetching audit history...</span>
-            </div>
-            <TableRowSkeleton columns={6} rows={6} />
-          </div>
+          <SkeletonTable columns={9} rows={6} />
         )}
 
         {/* PART A: Verification Activity Table */}
@@ -550,20 +553,31 @@ export function ActivityLog() {
 
                             {/* Change */}
                             <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                              <div className="inline-flex items-center gap-1.5 text-xs font-mono">
-                                <span className={cn(log.previous_value ? 'text-emerald-400' : 'text-muted-foreground')}>
-                                  {log.previous_value ? 'True' : 'False'}
+                              {log.field_name === 'reporting_location' ? (
+                                <span className="text-[11px] text-muted-foreground">
+                                  Location updated
                                 </span>
-                                <span className="text-muted-foreground/60">→</span>
-                                <span className={cn(log.new_value ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold')}>
-                                  {log.new_value ? 'True' : 'False'}
-                                </span>
-                              </div>
+                              ) : (
+                                <div className="inline-flex items-center gap-1.5 text-xs font-mono">
+                                  <span className={cn(log.previous_value ? 'text-emerald-400' : 'text-muted-foreground')}>
+                                    {log.previous_value ? 'True' : 'False'}
+                                  </span>
+                                  <span className="text-muted-foreground/60">→</span>
+                                  <span className={cn(log.new_value ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold')}>
+                                    {log.new_value ? 'True' : 'False'}
+                                  </span>
+                                </div>
+                              )}
                             </td>
 
                             {/* Action Type */}
                             <td className="px-4 py-3.5 whitespace-nowrap">
-                              {actionType === 'VERIFY' ? (
+                              {actionType === 'LOCATION_UPDATE' ? (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-cyan-400 border border-cyan-500/20">
+                                  <MapPin size={12} />
+                                  LOCATION UPDATE
+                                </span>
+                              ) : actionType === 'VERIFY' ? (
                                 <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">
                                   <CheckCircle2 size={12} />
                                   VERIFY

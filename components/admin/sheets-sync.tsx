@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { PageContainer } from '@/components/admin/page-container'
 import { LoadingSpinner } from '@/components/admin/loading-state'
+import { Skeleton, SkeletonCard } from '@/components/ui/skeleton'
 import type { SheetsConnectionStatus, SheetsSyncSummary } from '@/lib/sheets/types'
 
 export function SheetsSyncControl() {
@@ -158,11 +159,20 @@ export function SheetsSyncControl() {
 
         {/* 1. Connection Banner */}
         {loading ? (
-          <div className="rounded-2xl border border-border bg-card p-6 flex items-center gap-4">
-            <LoadingSpinner size={24} className="text-cyan-400" />
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Checking Google Sheets Connection...</h3>
-              <p className="text-xs text-muted-foreground">Verifying service account credentials and permissions.</p>
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex items-center gap-4">
+                <Skeleton className="size-11 rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-56" />
+                  <Skeleton className="h-3 w-72 max-w-full" />
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <SkeletonCard key={index} />
+              ))}
             </div>
           </div>
         ) : connection?.accessible ? (

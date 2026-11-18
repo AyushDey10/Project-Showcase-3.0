@@ -1,0 +1,800 @@
+[
+  {
+    "source_team_id": "PS3003",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 1
+  },
+  {
+    "source_team_id": "PS3005",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 2
+  },
+  {
+    "source_team_id": "PS3008",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 3
+  },
+  {
+    "source_team_id": "PS3020",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 4
+  },
+  {
+    "source_team_id": "PS3030",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 5
+  },
+  {
+    "source_team_id": "PS3032",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 6
+  },
+  {
+    "source_team_id": "PS3045",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 7
+  },
+  {
+    "source_team_id": "PS3050",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 8
+  },
+  {
+    "source_team_id": "PS3051",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 9
+  },
+  {
+    "source_team_id": "PS3052",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 10
+  },
+  {
+    "source_team_id": "PS3061",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 11
+  },
+  {
+    "source_team_id": "PS3073",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 12
+  },
+  {
+    "source_team_id": "PS3120",
+    "panel_number": 1,
+    "reporting_block": "A",
+    "table_number": 13
+  },
+  {
+    "source_team_id": "PS3001",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 16
+  },
+  {
+    "source_team_id": "PS3012",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 17
+  },
+  {
+    "source_team_id": "PS3013",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 18
+  },
+  {
+    "source_team_id": "PS3043",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 19
+  },
+  {
+    "source_team_id": "PS3048",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 20
+  },
+  {
+    "source_team_id": "PS3049",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 21
+  },
+  {
+    "source_team_id": "PS3066",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 22
+  },
+  {
+    "source_team_id": "PS3088",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 23
+  },
+  {
+    "source_team_id": "PS3089",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 24
+  },
+  {
+    "source_team_id": "PS3090",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 25
+  },
+  {
+    "source_team_id": "PS3118",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 26
+  },
+  {
+    "source_team_id": "PS3126",
+    "panel_number": 2,
+    "reporting_block": "B",
+    "table_number": 27
+  },
+  {
+    "source_team_id": "PS3010",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 31
+  },
+  {
+    "source_team_id": "PS3018",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 32
+  },
+  {
+    "source_team_id": "PS3021",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 33
+  },
+  {
+    "source_team_id": "PS3029",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 34
+  },
+  {
+    "source_team_id": "PS3034",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 35
+  },
+  {
+    "source_team_id": "PS3054",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 36
+  },
+  {
+    "source_team_id": "PS3071",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 37
+  },
+  {
+    "source_team_id": "PS3079",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 38
+  },
+  {
+    "source_team_id": "PS3081",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 39
+  },
+  {
+    "source_team_id": "PS3084",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 40
+  },
+  {
+    "source_team_id": "PS3094",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 41
+  },
+  {
+    "source_team_id": "PS3101",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 42
+  },
+  {
+    "source_team_id": "PS3104",
+    "panel_number": 3,
+    "reporting_block": "C",
+    "table_number": 43
+  },
+  {
+    "source_team_id": "PS3009",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 46
+  },
+  {
+    "source_team_id": "PS3014",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 47
+  },
+  {
+    "source_team_id": "PS3015",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 48
+  },
+  {
+    "source_team_id": "PS3019",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 49
+  },
+  {
+    "source_team_id": "PS3024",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 50
+  },
+  {
+    "source_team_id": "PS3033",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 51
+  },
+  {
+    "source_team_id": "PS3039",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 52
+  },
+  {
+    "source_team_id": "PS3040",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 53
+  },
+  {
+    "source_team_id": "PS3080",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 54
+  },
+  {
+    "source_team_id": "PS3085",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 55
+  },
+  {
+    "source_team_id": "PS3099",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 56
+  },
+  {
+    "source_team_id": "PS3103",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 57
+  },
+  {
+    "source_team_id": "PS3114",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 58
+  },
+  {
+    "source_team_id": "PS3131",
+    "panel_number": 4,
+    "reporting_block": "D",
+    "table_number": 59
+  },
+  {
+    "source_team_id": "PS3002",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 61
+  },
+  {
+    "source_team_id": "PS3007",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 62
+  },
+  {
+    "source_team_id": "PS3011",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 63
+  },
+  {
+    "source_team_id": "PS3041",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 64
+  },
+  {
+    "source_team_id": "PS3046",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 65
+  },
+  {
+    "source_team_id": "PS3062",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 66
+  },
+  {
+    "source_team_id": "PS3067",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 67
+  },
+  {
+    "source_team_id": "PS3076",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 68
+  },
+  {
+    "source_team_id": "PS3077",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 69
+  },
+  {
+    "source_team_id": "PS3086",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 70
+  },
+  {
+    "source_team_id": "PS3092",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 71
+  },
+  {
+    "source_team_id": "PS3115",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 72
+  },
+  {
+    "source_team_id": "PS3128",
+    "panel_number": 5,
+    "reporting_block": "E",
+    "table_number": 73
+  },
+  {
+    "source_team_id": "PS3022",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 76
+  },
+  {
+    "source_team_id": "PS3027",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 77
+  },
+  {
+    "source_team_id": "PS3031",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 78
+  },
+  {
+    "source_team_id": "PS3056",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 79
+  },
+  {
+    "source_team_id": "PS3064",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 80
+  },
+  {
+    "source_team_id": "PS3130",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 81
+  },
+  {
+    "source_team_id": "PS3093",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 82
+  },
+  {
+    "source_team_id": "PS3110",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 83
+  },
+  {
+    "source_team_id": "PS3111",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 84
+  },
+  {
+    "source_team_id": "PS3119",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 85
+  },
+  {
+    "source_team_id": "PS3121",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 86
+  },
+  {
+    "source_team_id": "PS3122",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 87
+  },
+  {
+    "source_team_id": "PS3123",
+    "panel_number": 6,
+    "reporting_block": "F",
+    "table_number": 88
+  },
+  {
+    "source_team_id": "PS3004",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 91
+  },
+  {
+    "source_team_id": "PS3037",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 92
+  },
+  {
+    "source_team_id": "PS3057",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 93
+  },
+  {
+    "source_team_id": "PS3063",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 94
+  },
+  {
+    "source_team_id": "PS3065",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 95
+  },
+  {
+    "source_team_id": "PS3068",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 96
+  },
+  {
+    "source_team_id": "PS3129",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 97
+  },
+  {
+    "source_team_id": "PS3070",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 98
+  },
+  {
+    "source_team_id": "PS3072",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 99
+  },
+  {
+    "source_team_id": "PS3096",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 100
+  },
+  {
+    "source_team_id": "PS3105",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 101
+  },
+  {
+    "source_team_id": "PS3124",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 102
+  },
+  {
+    "source_team_id": "PS3127",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 103
+  },
+  {
+    "source_team_id": "PS3133",
+    "panel_number": 7,
+    "reporting_block": "G",
+    "table_number": 104
+  },
+  {
+    "source_team_id": "PS3023",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 106
+  },
+  {
+    "source_team_id": "PS3028",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 107
+  },
+  {
+    "source_team_id": "PS3038",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 108
+  },
+  {
+    "source_team_id": "PS3044",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 109
+  },
+  {
+    "source_team_id": "PS3053",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 110
+  },
+  {
+    "source_team_id": "PS3055",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 111
+  },
+  {
+    "source_team_id": "PS3059",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 112
+  },
+  {
+    "source_team_id": "PS3078",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 113
+  },
+  {
+    "source_team_id": "PS3091",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 114
+  },
+  {
+    "source_team_id": "PS3109",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 115
+  },
+  {
+    "source_team_id": "PS3113",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 116
+  },
+  {
+    "source_team_id": "PS3117",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 117
+  },
+  {
+    "source_team_id": "PS3125",
+    "panel_number": 8,
+    "reporting_block": "H",
+    "table_number": 118
+  },
+  {
+    "source_team_id": "PS3006",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 121
+  },
+  {
+    "source_team_id": "PS3025",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 122
+  },
+  {
+    "source_team_id": "PS3035",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 123
+  },
+  {
+    "source_team_id": "PS3036",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 124
+  },
+  {
+    "source_team_id": "PS3047",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 125
+  },
+  {
+    "source_team_id": "PS3058",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 126
+  },
+  {
+    "source_team_id": "PS3060",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 127
+  },
+  {
+    "source_team_id": "PS3075",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 128
+  },
+  {
+    "source_team_id": "PS3095",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 129
+  },
+  {
+    "source_team_id": "PS3097",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 130
+  },
+  {
+    "source_team_id": "PS3098",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 131
+  },
+  {
+    "source_team_id": "PS3102",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 132
+  },
+  {
+    "source_team_id": "PS3107",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 133
+  },
+  {
+    "source_team_id": "PS3108",
+    "panel_number": 9,
+    "reporting_block": "I",
+    "table_number": 134
+  },
+  {
+    "source_team_id": "PS3016",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 136
+  },
+  {
+    "source_team_id": "PS3017",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 137
+  },
+  {
+    "source_team_id": "PS3026",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 138
+  },
+  {
+    "source_team_id": "PS3042",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 139
+  },
+  {
+    "source_team_id": "PS3069",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 140
+  },
+  {
+    "source_team_id": "PS3074",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 141
+  },
+  {
+    "source_team_id": "PS3082",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 142
+  },
+  {
+    "source_team_id": "PS3083",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 143
+  },
+  {
+    "source_team_id": "PS3087",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 144
+  },
+  {
+    "source_team_id": "PS3100",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 145
+  },
+  {
+    "source_team_id": "PS3106",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 146
+  },
+  {
+    "source_team_id": "PS3112",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 147
+  },
+  {
+    "source_team_id": "PS3116",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 148
+  },
+  {
+    "source_team_id": "PS3132",
+    "panel_number": 10,
+    "reporting_block": "J",
+    "table_number": 149
+  }
+]

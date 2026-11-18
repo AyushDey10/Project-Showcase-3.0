@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { PageContainer } from '@/components/admin/page-container'
 import { StatusBadge } from '@/components/admin/status-badge'
-import { LoadingSpinner, TableRowSkeleton } from '@/components/admin/loading-state'
+import { Skeleton, SkeletonRow } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/admin/empty-state'
 import { ErrorState } from '@/components/admin/error-state'
 import { cn } from '@/lib/utils'
@@ -147,6 +147,9 @@ export function TeamsDirectory() {
   }, [fetchTeams])
 
   const totalPages = Math.ceil(total / pageSize)
+  // First visit renders skeleton rows inside the real table shell; later
+  // filter/page changes keep the previous rows visible instead of flashing.
+  const firstLoad = loading && teams.length === 0
   const isInternal = (inst: string | null) =>
     Boolean(inst && inst.toLowerCase().includes('bennett'))
 
@@ -363,17 +366,6 @@ export function TeamsDirectory() {
           />
         )}
 
-        {/* Loading State */}
-        {loading && !error && (
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-            <div className="flex items-center justify-center py-6 gap-2 text-xs text-muted-foreground">
-              <LoadingSpinner size={16} />
-              <span>Querying database records...</span>
-            </div>
-            <TableRowSkeleton columns={7} rows={8} />
-          </div>
-        )}
-
         {/* Empty State */}
         {!loading && !error && teams.length === 0 && (
           <EmptyState
@@ -398,8 +390,8 @@ export function TeamsDirectory() {
           />
         )}
 
-        {/* Teams Table */}
-        {!loading && !error && teams.length > 0 && (
+        {/* Teams Table — the shell and headers paint before data arrives */}
+        {!error && (loading || teams.length > 0) && (
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -414,8 +406,12 @@ export function TeamsDirectory() {
                     <th className="px-4 py-3.5 text-right w-24">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/60">
-                  {teams.map((team) => {
+                <tbody className="divide-y divide-border/60" aria-busy={loading}>
+                  {firstLoad
+                    ? Array.from({ length: 8 }).map((_, index) => (
+                        <SkeletonRow key={`skeleton-${index}`} columns={7} />
+                      ))
+                    : teams.map((team) => {
                     const internal = isInternal(team.institution)
                     return (
                       <tr
@@ -536,11 +532,15 @@ export function TeamsDirectory() {
 
             {/* Pagination Footer */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/80 px-4 py-3.5 text-xs text-muted-foreground bg-muted/10">
-              <p>
-                Showing <strong className="text-foreground">{startRecord}</strong> to{' '}
-                <strong className="text-foreground">{endRecord}</strong> of{' '}
-                <strong className="text-foreground">{total}</strong> teams
-              </p>
+              {firstLoad ? (
+                <Skeleton className="h-3 w-44" />
+              ) : (
+                <p>
+                  Showing <strong className="text-foreground">{startRecord}</strong> to{' '}
+                  <strong className="text-foreground">{endRecord}</strong> of{' '}
+                  <strong className="text-foreground">{total}</strong> teams
+                </p>
+              )}
 
               {totalPages > 1 && (
                 <div className="flex items-center gap-1">
