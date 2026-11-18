@@ -31,6 +31,7 @@ import { SkeletonTable } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/admin/empty-state'
 import { ErrorState } from '@/components/admin/error-state'
 import { cn } from '@/lib/utils'
+import { CHECKPOINT_LABELS } from '@/lib/teams/verification'
 
 export type VerificationActivityLog = {
   id: string
@@ -79,8 +80,8 @@ function formatDateTime(ts: string | null) {
 
 function fieldDisplayName(f: string) {
   if (f === 'reported') return 'Reported'
-  if (f === 'photo_id_checked') return 'Photo ID Checked'
-  if (f === 'noc_received') return 'NOC Received'
+  if (f === 'photo_id_checked') return CHECKPOINT_LABELS.photo_id_checked
+  if (f === 'noc_received') return CHECKPOINT_LABELS.noc_received
   if (f === 'reporting_location') return 'Reporting Location'
   return f
 }
@@ -385,8 +386,8 @@ export function ActivityLog() {
                 >
                   <option value="all">All Checkpoints</option>
                   <option value="reported">Reported</option>
-                  <option value="photo_id_checked">Photo ID Checked</option>
-                  <option value="noc_received">NOC Received</option>
+                  <option value="photo_id_checked">Identity (ID Card)</option>
+                  <option value="noc_received">NOC Verification</option>
                   <option value="reporting_location">Reporting Location</option>
                 </select>
               </div>

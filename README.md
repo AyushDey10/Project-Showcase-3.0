@@ -52,8 +52,8 @@ Each team has three administrative checkpoints:
 | Checkpoint | Description |
 |---|---|
 | Reported | Records whether the team has reported. |
-| Photo ID Checked | Records completion of photo ID verification. |
-| NOC Received | Records whether the required NOC has been received. |
+| Identity (ID Card) | Records completion of identity verification (column `photo_id_checked`). |
+| NOC Verification | Records whether the required NOC has been received (external teams only; column `noc_received`). |
 
 **Attendance Status Calculation:**
 

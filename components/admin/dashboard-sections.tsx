@@ -37,8 +37,8 @@ function formatTimestamp(ts: string | null) {
 
 function fieldLabel(fieldName: string) {
   if (fieldName === 'reported') return 'Reported'
-  if (fieldName === 'photo_id_checked') return 'Photo ID'
-  if (fieldName === 'noc_received') return 'NOC'
+  if (fieldName === 'photo_id_checked') return 'Identity (ID Card)'
+  if (fieldName === 'noc_received') return 'NOC Verification'
   return fieldName
 }
 
@@ -73,18 +73,16 @@ async function fetchDashboardData(profile: AdminProfile) {
 
     let internalReported = 0
     let internalPhotoId = 0
-    let internalNoc = 0
     let internalFullyVerified = 0
 
     for (const t of internalTeams) {
       const v = vMap.get(t.id)
       const rep = Boolean(v?.reported)
       const pho = Boolean(v?.photo_id_checked)
-      const noc = Boolean(v?.noc_received)
       if (rep) internalReported++
       if (pho) internalPhotoId++
-      if (noc) internalNoc++
-      if (rep && pho && noc) internalFullyVerified++
+      // Internal workflow = Identity (ID Card) + Reported. NOC is not required.
+      if (rep && pho) internalFullyVerified++
     }
 
     let externalReported = 0
@@ -127,8 +125,11 @@ async function fetchDashboardData(profile: AdminProfile) {
     let displayStudents = registration.totalStudents
     let displayReported = internalReported + externalReported
     let displayPhotoId = internalPhotoId + externalPhotoId
-    let displayNoc = internalNoc + externalNoc
+    // NOC Verification applies to external teams only.
+    let displayNoc = externalNoc
     let displayFullyVerified = internalFullyVerified + externalFullyVerified
+    // Internal teams have 2 required checkpoints, external teams have 3.
+    let displayExpectedCheckpoints = internalCount * 2 + externalCount * 3
 
     // Dynamic student counts per desk from cached registration data
     const internalStudents = registration.internalStudents
@@ -139,8 +140,9 @@ async function fetchDashboardData(profile: AdminProfile) {
       displayStudents = internalStudents
       displayReported = internalReported
       displayPhotoId = internalPhotoId
-      displayNoc = internalNoc
+      displayNoc = 0
       displayFullyVerified = internalFullyVerified
+      displayExpectedCheckpoints = internalCount * 2
     } else if (!isSuper && profile.desk === 'external') {
       displayTotalTeams = externalCount
       displayStudents = externalStudents
@@ -148,11 +150,11 @@ async function fetchDashboardData(profile: AdminProfile) {
       displayPhotoId = externalPhotoId
       displayNoc = externalNoc
       displayFullyVerified = externalFullyVerified
+      displayExpectedCheckpoints = externalCount * 3
     }
 
-    const totalExpectedCheckpoints = displayTotalTeams * 3
     const totalCompletedCheckpoints = displayReported + displayPhotoId + displayNoc
-    const pendingCheckpoints = Math.max(0, totalExpectedCheckpoints - totalCompletedCheckpoints)
+    const pendingCheckpoints = Math.max(0, displayExpectedCheckpoints - totalCompletedCheckpoints)
 
     return {
       error: null,
@@ -171,7 +173,6 @@ async function fetchDashboardData(profile: AdminProfile) {
       externalStudents,
       internalReported,
       internalPhotoId,
-      internalNoc,
       internalFullyVerified,
       externalReported,
       externalPhotoId,
@@ -241,7 +242,6 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
     pendingCheckpoints,
     internalReported,
     internalPhotoId,
-    internalNoc,
     internalFullyVerified,
     externalReported,
     externalPhotoId,
@@ -252,11 +252,12 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
 
   const reportedRemaining = totalTeams - reportedCount
   const photoIdRemaining = totalTeams - photoIdCount
-  const nocRemaining = totalTeams - nocCount
+  // NOC only applies to external teams.
+  const nocRemaining = Math.max(0, externalCount - nocCount)
 
   const reportedPct = totalTeams > 0 ? Math.round((reportedCount / totalTeams) * 100) : 0
   const photoIdPct = totalTeams > 0 ? Math.round((photoIdCount / totalTeams) * 100) : 0
-  const nocPct = totalTeams > 0 ? Math.round((nocCount / totalTeams) * 100) : 0
+  const nocPct = externalCount > 0 ? Math.round((nocCount / externalCount) * 100) : 0
   const fullyVerifiedPct = totalTeams > 0 ? Math.round((fullyVerifiedCount / totalTeams) * 100) : 0
 
   const internalPct = internalCount + externalCount > 0
@@ -266,7 +267,6 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
 
   const internalReportedPct = internalCount > 0 ? Math.round((internalReported / internalCount) * 100) : 0
   const internalPhotoIdPct = internalCount > 0 ? Math.round((internalPhotoId / internalCount) * 100) : 0
-  const internalNocPct = internalCount > 0 ? Math.round((internalNoc / internalCount) * 100) : 0
 
   const externalReportedPct = externalCount > 0 ? Math.round((externalReported / externalCount) * 100) : 0
   const externalPhotoIdPct = externalCount > 0 ? Math.round((externalPhotoId / externalCount) * 100) : 0
@@ -304,7 +304,7 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
             color="emerald"
           />
           <StatCard
-            label="Photo IDs Checked"
+            label="Identity (ID Card) Verified"
             value={photoIdCount}
             subtext={`${photoIdRemaining} teams awaiting ID verification`}
             iconName="fingerprint"
@@ -314,9 +314,9 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <StatCard
-            label="NOCs Received"
+            label="NOC Verified (External)"
             value={nocCount}
-            subtext={`${nocRemaining} teams awaiting NOC clearance`}
+            subtext={`${nocRemaining} external teams awaiting NOC`}
             iconName="file-check"
             color="amber"
           />
@@ -373,7 +373,7 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Teams with all three verifications completed (Reported + Photo ID Checked + NOC Received).
+                Teams with every required checkpoint completed — External: NOC Verification + Identity (ID Card) + Reported · Internal: Identity (ID Card) + Reported.
               </p>
             </div>
           </div>
@@ -466,8 +466,8 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
                   <Fingerprint className="size-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Photo ID Checked</h3>
-                  <p className="text-[11px] text-muted-foreground">Physical ID card verification</p>
+                  <h3 className="text-sm font-semibold text-foreground">Identity (ID Card)</h3>
+                  <p className="text-[11px] text-muted-foreground">Physical ID card verification (all teams)</p>
                 </div>
               </div>
               <span className="text-2xl font-bold tabular-nums text-cyan-400">
@@ -519,8 +519,8 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
                   <FileCheck2 className="size-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">NOC Received</h3>
-                  <p className="text-[11px] text-muted-foreground">Institutional approval clearance</p>
+                  <h3 className="text-sm font-semibold text-foreground">NOC Verification</h3>
+                  <p className="text-[11px] text-muted-foreground">External teams only · not required for internal teams</p>
                 </div>
               </div>
               <span className="text-2xl font-bold tabular-nums text-amber-400">
@@ -537,22 +537,20 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
-              <span className="font-medium text-amber-400">
-                {nocCount} Completed
-              </span>
-              <span className="text-muted-foreground">
-                {nocRemaining} Remaining ({totalTeams} total)
-              </span>
-            </div>
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
+                <span className="font-medium text-amber-400">
+                  {nocCount} Verified
+                </span>
+                <span className="text-muted-foreground">
+                  {nocRemaining} Remaining ({externalCount} external)
+                </span>
+              </div>
 
             {isSuper && (
               <div className="space-y-1.5 pt-2 border-t border-border/40 text-xs text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Bennett University:</span>
-                  <span className="font-mono text-foreground font-medium">
-                    {internalNoc}/{internalCount} ({internalNocPct}%)
-                  </span>
+                  <span className="font-medium text-foreground">Not Required</span>
                 </div>
                 <div className="flex justify-between">
                   <span>External Teams:</span>
@@ -642,7 +640,7 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
 
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Photo ID Checked:</span>
+                    <span className="text-muted-foreground">Identity (ID Card):</span>
                     <span className="font-semibold text-foreground tabular-nums">
                       {internalPhotoId} / {internalCount} ({internalPhotoIdPct}%)
                     </span>
@@ -655,20 +653,14 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">NOC Received:</span>
-                    <span className="font-semibold text-foreground tabular-nums">
-                      {internalNoc} / {internalCount} ({internalNocPct}%)
-                    </span>
+                                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">NOC Verification:</span>
+                      <span className="font-semibold text-muted-foreground">
+                        Not Required
+                      </span>
+                    </div>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-amber-500"
-                      style={{ width: `${internalNocPct}%` }}
-                    />
-                  </div>
-                </div>
               </div>
 
               <div className="pt-3 border-t border-border flex items-center justify-between">
@@ -721,7 +713,7 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
 
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Photo ID Checked:</span>
+                    <span className="text-muted-foreground">Identity (ID Card):</span>
                     <span className="font-semibold text-foreground tabular-nums">
                       {externalPhotoId} / {externalCount} ({externalPhotoIdPct}%)
                     </span>
@@ -736,7 +728,7 @@ export async function DashboardSections({ profile }: { profile: AdminProfile }) 
 
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">NOC Received:</span>
+                    <span className="text-muted-foreground">NOC Verification:</span>
                     <span className="font-semibold text-foreground tabular-nums">
                       {externalNoc} / {externalCount} ({externalNocPct}%)
                     </span>

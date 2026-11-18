@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/auth/admin'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { isTeamAccessible } from '@/lib/teams/classification'
+import { isTeamAccessible, isInternalInstitution } from '@/lib/teams/classification'
 import { enqueueSheetsSync } from '@/lib/sheets/queue'
 
 export const runtime = 'nodejs'
@@ -119,6 +119,20 @@ export async function POST(request: Request) {
         error: `Access forbidden: You are assigned to the ${profile.desk?.toUpperCase()} desk and cannot perform verification on teams from another desk.`,
       },
       { status: 403 }
+    )
+  }
+
+  // Workflow enforcement (server-side): the internal (Bennett) workflow is
+  // Identity (ID Card) + Reported only. NOC Verification must be rejected for
+  // internal teams whether it is a verify or a reverse request, regardless of
+  // what the client sends.
+  if (fieldName === 'noc_received' && isInternalInstitution(team.institution)) {
+    return NextResponse.json(
+      {
+        error:
+          'NOC Verification is not part of the internal (Bennett University) workflow. Internal teams use Identity (ID Card) and Reported only.',
+      },
+      { status: 400, headers: { 'Cache-Control': 'no-store' } }
     )
   }
 

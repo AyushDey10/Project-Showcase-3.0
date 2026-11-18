@@ -29,6 +29,11 @@ import {
   fetchTeamReportingLocation,
   type ReportingLocation,
 } from '@/lib/teams/reporting-location'
+import {
+  CHECKPOINT_LABELS,
+  getCheckpointProgress,
+  isCheckpointApplicable,
+} from '@/lib/teams/verification'
 import { cn } from '@/lib/utils'
 
 export type VerificationField = 'reported' | 'photo_id_checked' | 'noc_received'
@@ -59,34 +64,15 @@ interface ReversalDialogState {
   reason: string
 }
 
-const CHECKPOINTS: {
-  field: VerificationField
-  label: string
-  shortLabel: string
-  icon: React.ElementType
-  color: string
-}[] = [
-  {
-    field: 'reported',
-    label: 'Reported to Venue',
-    shortLabel: 'Reported',
-    icon: ClipboardCheck,
-    color: 'emerald',
-  },
-  {
-    field: 'photo_id_checked',
-    label: 'Photo ID Verified',
-    shortLabel: 'Photo ID',
-    icon: Fingerprint,
-    color: 'cyan',
-  },
-  {
-    field: 'noc_received',
-    label: 'NOC Received',
-    shortLabel: 'NOC',
-    icon: FileCheck2,
-    color: 'amber',
-  },
+/**
+ * Checkpoint columns in workflow order:
+ *   External: NOC Verification → Identity (ID Card) → Reported
+ *   Internal: Identity (ID Card) → Reported (NOC shown as Not Required in mixed views)
+ */
+const CHECKPOINT_COLUMNS: { field: VerificationField; label: string }[] = [
+  { field: 'noc_received', label: 'NOC Verification' },
+  { field: 'photo_id_checked', label: 'Identity (ID Card)' },
+  { field: 'reported', label: 'Reported' },
 ]
 
 function formatTime(iso: string | null) {
@@ -276,8 +262,8 @@ export function AttendanceManagement() {
       showToast(
         'success',
         newValue
-          ? `Verified ${field.replace('_', ' ')} successfully.`
-          : `Reversed ${field.replace('_', ' ')} successfully.`
+          ? `${CHECKPOINT_LABELS[field]} verified successfully.`
+          : `${CHECKPOINT_LABELS[field]} reversed successfully.`
       )
 
       // Only a successful Reported checkpoint opens the location popup.
@@ -354,11 +340,13 @@ export function AttendanceManagement() {
   }
 
   const totalPages = Math.ceil(total / pageSize)
+  // Internal desks only ever show the two internal checkpoints.
+  const showNocColumn = deskScope !== 'internal'
 
   return (
     <PageContainer
       title="Attendance Management"
-      description="Direct checkpoint operations: Mark Reported, Photo ID Checked, and NOC Received in real time."
+      description="Direct checkpoint operations — External teams: NOC Verification → Identity (ID Card) → Reported. Internal teams: Identity (ID Card) → Reported."
       breadcrumbs={[
         { label: 'Admin', href: '/admin' },
         { label: 'Attendance' },
@@ -463,7 +451,7 @@ export function AttendanceManagement() {
                 {(
                   [
                     { id: 'all', label: 'All' },
-                    { id: 'completed', label: 'Completed (3/3)' },
+                    { id: 'completed', label: 'Completed' },
                     { id: 'in_progress', label: 'In Progress' },
                     { id: 'not_started', label: 'Not Started' },
                   ] as const
@@ -518,16 +506,18 @@ export function AttendanceManagement() {
                     <th className="px-4 py-3.5 w-16">Team</th>
                     <th className="px-4 py-3.5">Details</th>
                     <th className="px-4 py-3.5">Desk</th>
-                    <th className="px-4 py-3.5 text-center">Reported</th>
-                    <th className="px-4 py-3.5 text-center">Photo ID</th>
-                    <th className="px-4 py-3.5 text-center">NOC</th>
+                    {CHECKPOINT_COLUMNS.filter((column) => showNocColumn || column.field !== 'noc_received').map((column) => (
+                      <th key={column.field} className="px-4 py-3.5 text-center whitespace-nowrap">
+                        {column.label}
+                      </th>
+                    ))}
                     <th className="px-4 py-3.5 text-center">Status</th>
                     <th className="px-4 py-3.5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {Array.from({ length: 8 }).map((_, index) => (
-                    <SkeletonRow key={`skeleton-${index}`} columns={8} />
+                    <SkeletonRow key={`skeleton-${index}`} columns={showNocColumn ? 8 : 7} />
                   ))}
                 </tbody>
               </table>
@@ -559,20 +549,20 @@ export function AttendanceManagement() {
                     <th className="px-4 py-3.5 w-16">Team</th>
                     <th className="px-4 py-3.5">Details</th>
                     <th className="px-4 py-3.5">Desk</th>
-                    <th className="px-4 py-3.5 text-center">Reported</th>
-                    <th className="px-4 py-3.5 text-center">Photo ID</th>
-                    <th className="px-4 py-3.5 text-center">NOC</th>
+                    {CHECKPOINT_COLUMNS.filter((column) => showNocColumn || column.field !== 'noc_received').map((column) => (
+                      <th key={column.field} className="px-4 py-3.5 text-center whitespace-nowrap">
+                        {column.label}
+                      </th>
+                    ))}
                     <th className="px-4 py-3.5 text-center">Status</th>
                     <th className="px-4 py-3.5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {teams.map((t) => {
-                    const completedCount =
-                      (t.reported ? 1 : 0) +
-                      (t.photo_id_checked ? 1 : 0) +
-                      (t.noc_received ? 1 : 0)
-                    const isAllDone = completedCount === 3
+                    // Class-specific completion: internal 2 checkpoints, external 3.
+                    const progress = getCheckpointProgress(t.institution, t)
+                    const isAllDone = progress.status === 'completed'
 
                     return (
                       <tr
@@ -607,19 +597,30 @@ export function AttendanceManagement() {
                           <StatusBadge type="category" category={t.desk} size="sm" />
                         </td>
 
-                        {/* Checkpoint 1: Reported */}
-                        <td className="px-3 py-3.5 text-center">
-                          {renderCheckpointButton(t, 'reported')}
-                        </td>
+                        {/* Workflow step 1: NOC Verification (external only) */}
+                        {showNocColumn && (
+                          <td className="px-3 py-3.5 text-center">
+                            {isCheckpointApplicable(t.institution, 'noc_received') ? (
+                              renderCheckpointButton(t, 'noc_received')
+                            ) : (
+                              <span
+                                className="inline-flex items-center rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                title="NOC Verification is not required for internal (Bennett University) teams."
+                              >
+                                Not Required
+                              </span>
+                            )}
+                          </td>
+                        )}
 
-                        {/* Checkpoint 2: Photo ID */}
+                        {/* Workflow step 2: Identity (ID Card) */}
                         <td className="px-3 py-3.5 text-center">
                           {renderCheckpointButton(t, 'photo_id_checked')}
                         </td>
 
-                        {/* Checkpoint 3: NOC */}
+                        {/* Workflow step 3: Reported */}
                         <td className="px-3 py-3.5 text-center">
-                          {renderCheckpointButton(t, 'noc_received')}
+                          {renderCheckpointButton(t, 'reported')}
                         </td>
 
                         {/* Overall Progress Badge */}
@@ -629,12 +630,12 @@ export function AttendanceManagement() {
                               'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold',
                               isAllDone
                                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                : completedCount > 0
+                                : progress.completed > 0
                                 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                                 : 'bg-muted text-muted-foreground border border-border'
                             )}
                           >
-                            {completedCount}/3
+                            {progress.completed}/{progress.total}
                           </span>
                         </td>
 
@@ -700,7 +701,7 @@ export function AttendanceManagement() {
                 <h3 className="font-semibold text-foreground text-base">Reverse Checkpoint</h3>
                 <p className="text-xs text-muted-foreground">
                   Team {reversalDialog.team.source_team_id} &middot;{' '}
-                  {reversalDialog.field.replace(/_/g, ' ').toUpperCase()}
+                  {CHECKPOINT_LABELS[reversalDialog.field].toUpperCase()}
                 </p>
               </div>
             </div>
@@ -787,8 +788,8 @@ export function AttendanceManagement() {
           onClick={() => handleCheckpointClick(team, field)}
           title={
             isChecked
-              ? `Verified. Click to reverse (${field.replace(/_/g, ' ')})`
-              : `Click to mark ${field.replace(/_/g, ' ')} as verified`
+              ? `${CHECKPOINT_LABELS[field]} verified. Click to reverse.`
+              : `Click to mark ${CHECKPOINT_LABELS[field]} as verified`
           }
           className={cn(
             'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all shadow-xs',

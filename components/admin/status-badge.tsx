@@ -43,6 +43,8 @@ interface VerificationBadgeProps extends BaseStatusBadgeProps {
   field: 'reported' | 'photo_id_checked' | 'noc_received'
   verified: boolean
   label?: string
+  /** Renders "Not Required" instead of a Pending state (e.g. NOC for internal teams). */
+  notRequired?: boolean
 }
 
 interface RoleBadgeProps extends BaseStatusBadgeProps {
@@ -135,11 +137,15 @@ export function StatusBadge(props: StatusBadgeProps) {
   if (props.type === 'verification') {
     const fieldNames: Record<string, string> = {
       reported: 'Reported',
-      photo_id_checked: 'Photo ID Checked',
-      noc_received: 'NOC Received',
+      photo_id_checked: 'Identity (ID Card)',
+      noc_received: 'NOC Verification',
     }
     const defaultLabel = fieldNames[props.field] ?? props.field
-    if (props.verified) {
+    if (props.notRequired) {
+      variant = 'neutral'
+      label = 'Not Required'
+      icon = <AlertCircle className="size-3 shrink-0" />
+    } else if (props.verified) {
       variant = 'success'
       label = props.label ?? defaultLabel
       icon = <Check className="size-3 shrink-0 stroke-[2.5]" />

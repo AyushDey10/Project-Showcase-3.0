@@ -53,6 +53,7 @@ import {
   type ReportingLocation,
   type ReportingLocationField,
 } from '@/lib/teams/reporting-location'
+import { CHECKPOINT_LABELS, getCheckpointProgress } from '@/lib/teams/verification'
 
 export interface TeamData {
   id: string
@@ -181,16 +182,16 @@ const fieldDisplayConfig: Record<
     desc: 'Verify that the team has reported in person to the venue.',
   },
   photo_id_checked: {
-    label: 'Photo ID Checked',
+    label: CHECKPOINT_LABELS.photo_id_checked,
     icon: Fingerprint,
     color: 'cyan',
-    desc: 'Verify that physical student photo ID cards have been inspected.',
+    desc: 'Verify that physical student ID cards have been inspected.',
   },
   noc_received: {
-    label: 'NOC Received',
+    label: CHECKPOINT_LABELS.noc_received,
     icon: FileCheck2,
     color: 'amber',
-    desc: 'Verify that the required institutional NOC document is received.',
+    desc: 'Verify that the required institutional NOC document is received (external teams only).',
   },
 }
 
@@ -673,6 +674,8 @@ export function TeamDetail({
 
   const isInternal = team.institution?.toLowerCase().includes('bennett') ?? false
   const displayName = team.team_name || team.project_title || `Team ${team.source_team_id}`
+  // Class-aware completion (internal = 2 checkpoints, external = 3).
+  const checkpointProgress = getCheckpointProgress(team.institution, verification)
 
   return (
     <PageContainer
@@ -931,16 +934,32 @@ export function TeamDetail({
                 Verification Controls
               </h2>
               <p className="text-xs text-muted-foreground">
-                Three independent checkpoints. Modifying one verification status does not affect the other two.
+                {isInternal
+                  ? 'Internal (Bennett University) workflow: Identity (ID Card) → Reported. NOC Verification is not required.'
+                  : 'External workflow: NOC Verification → Identity (ID Card) → Reported. Each checkpoint is independent.'}
               </p>
             </div>
+            <span
+              className={cn(
+                'inline-flex shrink-0 items-center rounded-lg border px-2.5 py-1 text-xs font-semibold tabular-nums',
+                checkpointProgress.status === 'completed'
+                  ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
+                  : checkpointProgress.completed > 0
+                    ? 'border-amber-500/30 bg-amber-500/15 text-amber-400'
+                    : 'border-border bg-muted text-muted-foreground'
+              )}
+              title="Completed checkpoints for this team"
+            >
+              {checkpointProgress.completed}/{checkpointProgress.total} completed
+            </span>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            {/* Control A: Reported */}
+            {/* Workflow position 3 (external) / 2 (internal): Reported */}
             <div
               className={cn(
                 'rounded-2xl border p-5 space-y-4 transition-all duration-200',
+                isInternal ? 'order-2' : 'order-3',
                 verification.reported
                   ? 'border-emerald-500/30 bg-emerald-950/10 shadow-sm'
                   : 'border-border bg-card'
@@ -1024,10 +1043,11 @@ export function TeamDetail({
               </div>
             </div>
 
-            {/* Control B: Photo ID Checked */}
+            {/* Workflow position 2 (external) / 1 (internal): Identity (ID Card) */}
             <div
               className={cn(
                 'rounded-2xl border p-5 space-y-4 transition-all duration-200',
+                isInternal ? 'order-1' : 'order-2',
                 verification.photo_id_checked
                   ? 'border-cyan-500/30 bg-cyan-950/10 shadow-sm'
                   : 'border-border bg-card'
@@ -1046,7 +1066,7 @@ export function TeamDetail({
                     <Fingerprint className="size-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">Photo ID Checked</h3>
+                    <h3 className="text-sm font-semibold text-foreground">Identity (ID Card)</h3>
                     <span className="text-[11px] text-muted-foreground">Physical ID card check</span>
                   </div>
                 </div>
@@ -1067,7 +1087,7 @@ export function TeamDetail({
                       verification.photo_id_checked ? 'text-cyan-400' : 'text-muted-foreground'
                     )}
                   >
-                    {verification.photo_id_checked ? 'ID Verified' : 'Pending ID Check'}
+                    {verification.photo_id_checked ? 'Identity Verified' : 'Pending Verification'}
                   </span>
                 </div>
                 {verification.photo_id_checked && (
@@ -1095,7 +1115,7 @@ export function TeamDetail({
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/20 transition-all disabled:opacity-50"
                   >
                     <RotateCcw size={14} />
-                    <span>Reverse Photo ID Status</span>
+                    <span>Reverse Identity Verification</span>
                   </button>
                 ) : (
                   <button
@@ -1105,17 +1125,18 @@ export function TeamDetail({
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 py-2.5 text-xs font-semibold text-white transition-all shadow-sm disabled:opacity-50"
                   >
                     <Check size={14} className="stroke-[2.5]" />
-                    <span>Verify Photo ID</span>
+                    <span>Verify Identity</span>
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Control C: NOC Received */}
+            {/* Workflow position 1 (external only): NOC Verification */}
             <div
               className={cn(
                 'rounded-2xl border p-5 space-y-4 transition-all duration-200',
-                verification.noc_received
+                isInternal ? 'order-3' : 'order-1',
+                !isInternal && verification.noc_received
                   ? 'border-amber-500/30 bg-amber-950/10 shadow-sm'
                   : 'border-border bg-card'
               )}
@@ -1133,16 +1154,24 @@ export function TeamDetail({
                     <FileCheck2 className="size-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">NOC Received</h3>
-                    <span className="text-[11px] text-muted-foreground">College clearance form</span>
+                    <h3 className="text-sm font-semibold text-foreground">NOC Verification</h3>
+                    <span className="text-[11px] text-muted-foreground">
+                      {isInternal ? 'Not required for internal teams' : 'Institutional NOC document'}
+                    </span>
                   </div>
                 </div>
-                <StatusBadge
-                  type="verification"
-                  field="noc_received"
-                  verified={verification.noc_received}
-                  size="sm"
-                />
+                {isInternal ? (
+                  <span className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    Not Required
+                  </span>
+                ) : (
+                  <StatusBadge
+                    type="verification"
+                    field="noc_received"
+                    verified={verification.noc_received}
+                    size="sm"
+                  />
+                )}
               </div>
 
               <div className="rounded-xl bg-background/50 p-3 text-xs space-y-1.5 border border-border/40">
@@ -1151,10 +1180,12 @@ export function TeamDetail({
                   <span
                     className={cn(
                       'font-semibold',
-                      verification.noc_received ? 'text-amber-400' : 'text-muted-foreground'
+                      !isInternal && verification.noc_received ? 'text-amber-400' : 'text-muted-foreground'
                     )}
                   >
-                    {verification.noc_received ? 'NOC Cleared' : 'Pending NOC'}
+                    {isInternal
+                      ? 'Not Required'
+                      : verification.noc_received ? 'Verified' : 'Pending Verification'}
                   </span>
                 </div>
                 {verification.noc_received && (
@@ -1173,6 +1204,7 @@ export function TeamDetail({
                 )}
               </div>
 
+              {!isInternal && (
               <div>
                 {verification.noc_received ? (
                   <button
@@ -1182,7 +1214,7 @@ export function TeamDetail({
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/20 transition-all disabled:opacity-50"
                   >
                     <RotateCcw size={14} />
-                    <span>Reverse NOC Status</span>
+                    <span>Reverse NOC Verification</span>
                   </button>
                 ) : (
                   <button
@@ -1192,10 +1224,11 @@ export function TeamDetail({
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-500 py-2.5 text-xs font-semibold text-white transition-all shadow-sm disabled:opacity-50"
                   >
                     <Check size={14} className="stroke-[2.5]" />
-                    <span>Verify NOC</span>
+                    <span>Verify NOC Verification</span>
                   </button>
                 )}
               </div>
+              )}
             </div>
           </div>
         </section>

@@ -1,4 +1,5 @@
 import { getTeamDesk } from '@/lib/teams/classification'
+import { getCheckpointProgress } from '@/lib/teams/verification'
 import { NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/auth/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -65,6 +66,13 @@ export async function GET(request: Request) {
   const supabase = createAdminClient()
   let teamIds: string[] | null = null
 
+  // One read of the checkpoint table, started before the team query so both
+  // requests are in flight together. It serves the completion filter and the
+  // per-row flags, replacing what used to be two serialised table reads.
+  const verificationsPromise = supabase
+    .from('team_verifications')
+    .select('team_id, reported, photo_id_checked, noc_received')
+
   // Search across both team registration details and student members
   if (search) {
     const pattern = `%${search}%`
@@ -115,54 +123,62 @@ export async function GET(request: Request) {
     ]
 
     if (teamIds.length === 0) {
-      return NextResponse.json({
-        teams: [],
-        total: 0,
-        page,
-        pageSize,
-        deskScope: profile.role === 'admin' ? profile.desk : 'all',
-      })
+      return NextResponse.json(
+        {
+          teams: [],
+          total: 0,
+          page,
+          pageSize,
+          deskScope: profile.role === 'admin' ? profile.desk : 'all',
+        },
+        { headers: { 'Cache-Control': 'no-store' } }
+      )
     }
   }
 
-  // Filter by Attendance Completion Status if specified
+  // Filter by completion status using the class-specific workflow:
+  // internal teams need Identity + Reported (2), external teams need NOC +
+  // Identity + Reported (3). Classification comes from each team's institution.
   if (['completed', 'in_progress', 'not_started'].includes(statusFilter)) {
-    const { data: allVerifs } = await supabase
-      .from('team_verifications')
-      .select('team_id, reported, photo_id_checked, noc_received')
-    const vMap = new Map((allVerifs || []).map((v) => [v.team_id, v]))
+    const [verificationsRes, teamsRes] = await Promise.all([
+      verificationsPromise,
+      supabase.from('teams').select('id, institution'),
+    ])
 
-    let candidateIds: string[] = []
-    if (teamIds) {
-      candidateIds = teamIds
-    } else {
-      const { data: allTeams } = await supabase.from('teams').select('id')
-      candidateIds = (allTeams || []).map((t) => t.id)
+    if (verificationsRes.error || teamsRes.error) {
+      return jsonError('Could not load teams.', 500)
     }
 
-    const filteredByStatus = candidateIds.filter((tId) => {
-      const v = vMap.get(tId)
-      const rep = Boolean(v?.reported)
-      const pho = Boolean(v?.photo_id_checked)
-      const noc = Boolean(v?.noc_received)
-      const count = (rep ? 1 : 0) + (pho ? 1 : 0) + (noc ? 1 : 0)
+    const vMap = new Map((verificationsRes.data ?? []).map((v) => [v.team_id, v]))
+    const institutionById = new Map(
+      (teamsRes.data ?? []).map((t) => [t.id, t.institution])
+    )
 
-      if (statusFilter === 'completed') return count === 3
-      if (statusFilter === 'in_progress') return count > 0 && count < 3
-      if (statusFilter === 'not_started') return count === 0
+    const candidateIds = teamIds ?? (teamsRes.data ?? []).map((t) => t.id)
+
+    teamIds = candidateIds.filter((tId) => {
+      const progress = getCheckpointProgress(
+        institutionById.get(tId) ?? null,
+        vMap.get(tId)
+      )
+
+      if (statusFilter === 'completed') return progress.status === 'completed'
+      if (statusFilter === 'in_progress') return progress.status === 'in_progress'
+      if (statusFilter === 'not_started') return progress.status === 'not_started'
       return true
     })
 
-    teamIds = filteredByStatus
-
     if (teamIds.length === 0) {
-      return NextResponse.json({
-        teams: [],
-        total: 0,
-        page,
-        pageSize,
-        deskScope: profile.role === 'admin' ? profile.desk : 'all',
-      })
+      return NextResponse.json(
+        {
+          teams: [],
+          total: 0,
+          page,
+          pageSize,
+          deskScope: profile.role === 'admin' ? profile.desk : 'all',
+        },
+        { headers: { 'Cache-Control': 'no-store' } }
+      )
     }
   }
 
@@ -186,36 +202,31 @@ export async function GET(request: Request) {
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
-  const { data, error, count } = await query.range(from, to)
+  const [teamsResult, verificationsResult] = await Promise.all([
+    query.range(from, to),
+    verificationsPromise,
+  ])
+
+  const { data, error, count } = teamsResult
 
   if (error) {
     return jsonError('Could not load teams.', 500)
   }
 
   const teamIdsOnPage = (data ?? []).map((t) => t.id)
-  let verificationsMap = new Map<
+  const idsOnPage = new Set(teamIdsOnPage)
+  const verificationsMap = new Map<
     string,
     { reported: boolean; photo_id_checked: boolean; noc_received: boolean }
   >()
 
-  if (teamIdsOnPage.length > 0) {
-    const { data: verifications, error: vError } = await supabase
-      .from('team_verifications')
-      .select('team_id, reported, photo_id_checked, noc_received')
-      .in('team_id', teamIdsOnPage)
-
-    if (!vError && verifications) {
-      verificationsMap = new Map(
-        verifications.map((v) => [
-          v.team_id,
-          {
-            reported: Boolean(v.reported),
-            photo_id_checked: Boolean(v.photo_id_checked),
-            noc_received: Boolean(v.noc_received),
-          },
-        ])
-      )
-    }
+  for (const v of verificationsResult.data ?? []) {
+    if (!idsOnPage.has(v.team_id)) continue
+    verificationsMap.set(v.team_id, {
+      reported: Boolean(v.reported),
+      photo_id_checked: Boolean(v.photo_id_checked),
+      noc_received: Boolean(v.noc_received),
+    })
   }
 
   const teamsWithVerifications = (data ?? []).map((team) => {

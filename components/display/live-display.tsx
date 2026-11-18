@@ -347,7 +347,7 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
                 {s.fullyVerifiedCount} of {s.totalTeams} Teams Fully Cleared
               </h2>
               <p className="text-sm sm:text-base text-slate-400">
-                A team achieves full clearance when all three criteria are confirmed: Desk Reporting, Photo ID Check, and Physical NOC Handover.
+                External teams are fully cleared when NOC Verification, Identity (ID Card) and Reported are confirmed. Internal teams need only Identity (ID Card) and Reported.
               </p>
             </div>
 
@@ -431,10 +431,10 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
             </div>
           </div>
 
-          {/* Card 4: Photo ID Checked */}
+          {/* Card 4: Identity (ID Card) */}
           <div className="rounded-2xl bg-slate-900/60 border border-violet-500/20 p-5 backdrop-blur-md flex flex-col justify-between hover:border-violet-500/40 transition-all duration-300 group shadow-lg shadow-violet-950/20">
             <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider text-violet-300">Photo ID</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-violet-300">Identity (ID Card)</span>
               <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 group-hover:scale-110 transition-transform">
                 <Fingerprint className="w-5 h-5" />
               </div>
@@ -450,10 +450,10 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
             </div>
           </div>
 
-          {/* Card 5: NOC Received */}
+          {/* Card 5: NOC Verification (external teams only) */}
           <div className="col-span-2 lg:col-span-1 rounded-2xl bg-slate-900/60 border border-emerald-500/20 p-5 backdrop-blur-md flex flex-col justify-between hover:border-emerald-500/40 transition-all duration-300 group shadow-lg shadow-emerald-950/20">
             <div className="flex items-center justify-between text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">NOC Handover</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">NOC Verification</span>
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 group-hover:scale-110 transition-transform">
                 <FileCheck2 className="w-5 h-5" />
               </div>
@@ -463,8 +463,8 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
                 {s.nocCount}
               </div>
               <div className="flex items-center justify-between text-xs text-slate-400 mt-1">
-                <span>{s.progress.noc}% of total</span>
-                <span className="font-mono text-emerald-400">/{s.totalTeams}</span>
+                <span>{s.progress.noc}% of external</span>
+                <span className="font-mono text-emerald-400">/{s.external.total}</span>
               </div>
             </div>
           </div>
@@ -472,14 +472,14 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
 
         {/* Detailed Verification Pillar Progress Bars */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-          {/* Pillar 1: Reported */}
-          <div className="rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-sm space-y-3">
+          {/* Pillar 1: Reported (workflow step 3) */}
+          <div className="order-3 rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                   <ClipboardCheck className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-200">1. Desk Check-In (Reported)</h3>
+                <h3 className="text-sm font-bold text-slate-200">3. Reported</h3>
               </div>
               <span className="text-sm font-bold font-mono text-cyan-400">{s.progress.reported}%</span>
             </div>
@@ -495,14 +495,14 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
             </div>
           </div>
 
-          {/* Pillar 2: Photo ID */}
-          <div className="rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-sm space-y-3">
+          {/* Pillar 2: Identity (ID Card) — workflow step 2 */}
+          <div className="order-2 rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20">
                   <Fingerprint className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-200">2. Physical Photo ID Inspection</h3>
+                <h3 className="text-sm font-bold text-slate-200">2. Identity (ID Card)</h3>
               </div>
               <span className="text-sm font-bold font-mono text-violet-400">{s.progress.photoId}%</span>
             </div>
@@ -518,14 +518,14 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
             </div>
           </div>
 
-          {/* Pillar 3: NOC */}
-          <div className="rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-sm space-y-3">
+          {/* Pillar 3: NOC Verification — workflow step 1 (external only) */}
+          <div className="order-1 rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   <FileCheck2 className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-200">3. College NOC Form Submission</h3>
+                <h3 className="text-sm font-bold text-slate-200">1. NOC Verification (External)</h3>
               </div>
               <span className="text-sm font-bold font-mono text-emerald-400">{s.progress.noc}%</span>
             </div>
@@ -537,7 +537,7 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
             </div>
             <div className="flex justify-between text-xs text-slate-400 font-mono">
               <span>{s.nocCount} Verified</span>
-              <span>{Math.max(0, s.totalTeams - s.nocCount)} Pending</span>
+              <span>{Math.max(0, s.external.total - s.nocCount)} Pending</span>
             </div>
           </div>
         </div>
@@ -571,22 +571,22 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
 
             {/* Internal Breakdown Stats */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+              <div className="order-2 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
                 <div className="text-xs text-slate-400">Reported</div>
                 <div className="text-lg font-bold font-mono text-cyan-300 mt-0.5">
                   {s.internal.reported}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
-                <div className="text-xs text-slate-400">Photo ID</div>
+              <div className="order-1 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+                <div className="text-xs text-slate-400">Identity</div>
                 <div className="text-lg font-bold font-mono text-violet-300 mt-0.5">
                   {s.internal.photoId}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+              <div className="order-3 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
                 <div className="text-xs text-slate-400">NOC</div>
-                <div className="text-lg font-bold font-mono text-emerald-300 mt-0.5">
-                  {s.internal.noc}
+                <div className="text-[11px] font-semibold text-slate-400 mt-1">
+                  Not Required
                 </div>
               </div>
             </div>
@@ -635,19 +635,19 @@ export function LiveDisplay({ initialStats }: LiveDisplayProps) {
 
             {/* External Breakdown Stats */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+              <div className="order-3 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
                 <div className="text-xs text-slate-400">Reported</div>
                 <div className="text-lg font-bold font-mono text-cyan-300 mt-0.5">
                   {s.external.reported}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
-                <div className="text-xs text-slate-400">Photo ID</div>
+              <div className="order-2 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+                <div className="text-xs text-slate-400">Identity</div>
                 <div className="text-lg font-bold font-mono text-violet-300 mt-0.5">
                   {s.external.photoId}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+              <div className="order-1 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
                 <div className="text-xs text-slate-400">NOC</div>
                 <div className="text-lg font-bold font-mono text-emerald-300 mt-0.5">
                   {s.external.noc}

@@ -1,7 +1,6 @@
 import 'server-only'
 import { cache } from 'react'
 import { redirect } from 'next/navigation'
-import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 
 export type AdminRole = 'admin' | 'super_admin'
@@ -16,13 +15,37 @@ export type AdminProfile = {
   is_active: boolean
 }
 
+export type AdminSessionUser = {
+  id: string
+  email: string | null
+}
+
 export type AdminSession = {
-  user: User
+  user: AdminSessionUser
   profile: AdminProfile
 }
 
-async function loadAdminSession(): Promise<AdminSession | null> {
-  const supabase = await createClient()
+/**
+ * Verifies the caller's identity once per request.
+ *
+ * `getClaims()` validates the JWT signature locally when the project uses
+ * asymmetric signing keys and transparently falls back to the Auth server for
+ * symmetric (HS*) tokens, so the security guarantee is identical to `getUser()`
+ * while most requests no longer pay an auth round trip. Only `sub` and `email`
+ * are ever read from the session downstream.
+ */
+async function loadVerifiedUser(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<AdminSessionUser | null> {
+  try {
+    const { data, error } = await supabase.auth.getClaims()
+    if (!error && data?.claims?.sub) {
+      const claims = data.claims as { sub: string; email?: string }
+      return { id: claims.sub, email: claims.email ?? null }
+    }
+  } catch {
+    // Fall through to the authoritative server-side lookup below.
+  }
 
   const {
     data: { user },
@@ -30,6 +53,15 @@ async function loadAdminSession(): Promise<AdminSession | null> {
   } = await supabase.auth.getUser()
 
   if (authError || !user) return null
+  return { id: user.id, email: user.email ?? null }
+}
+
+async function loadAdminSession(): Promise<AdminSession | null> {
+  const supabase = await createClient()
+
+  const user = await loadVerifiedUser(supabase)
+
+  if (!user) return null
 
   // Attempt to select desk along with standard profile fields.
   // If desk column does not exist yet (pending migration), gracefully fallback.
@@ -90,7 +122,7 @@ async function loadAdminSession(): Promise<AdminSession | null> {
     profile: {
       id: profileData.id,
       email: profileData.email ?? user.email ?? null,
-      full_name: profileData.full_name ?? user.user_metadata?.full_name ?? null,
+      full_name: profileData.full_name ?? null,
       role,
       desk,
       is_active: Boolean(profileData.is_active),
@@ -114,12 +146,12 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   return getSessionOnce()
 }
 
-export async function getAdminUser(): Promise<User | null> {
+export async function getAdminUser(): Promise<AdminSessionUser | null> {
   const session = await getSessionOnce()
   return session ? session.user : null
 }
 
-export async function getSuperAdminUser(): Promise<User | null> {
+export async function getSuperAdminUser(): Promise<AdminSessionUser | null> {
   const session = await getSessionOnce()
   if (!session || session.profile.role !== 'super_admin') return null
   return session.user
@@ -142,7 +174,7 @@ export async function requireSuperAdminSession(): Promise<AdminSession> {
   return session
 }
 
-export async function requireAdmin(): Promise<User> {
+export async function requireAdmin(): Promise<AdminSessionUser> {
   const user = await getAdminUser()
 
   if (!user) redirect('/admin/login')

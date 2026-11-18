@@ -72,12 +72,12 @@ export const TEAM_ATTENDANCE_HEADERS = [
   'Reported Status',
   'Reported Time',
   'Reported By Volunteer Name',
-  'Photo ID Checked Status',
-  'Photo ID Checked Time',
-  'Photo ID Checked By Volunteer Name',
-  'NOC Received Status',
-  'NOC Received Time',
-  'NOC Received By Volunteer Name',
+  'Identity (ID Card) Status',
+  'Identity (ID Card) Time',
+  'Identity (ID Card) By Volunteer Name',
+  'NOC Verification Status (External only)',
+  'NOC Verification Time',
+  'NOC Verification By Volunteer Name',
   'Last Updated',
   'Last Updated By',
 ]
@@ -101,11 +101,11 @@ export const ATTENDANCE_SUMMARY_HEADERS = [
   'Institution',
   'Desk Classification',
   'Reported',
-  'Photo ID Checked',
-  'NOC Received',
+  'Identity (ID Card)',
+  'NOC Verification (External only)',
   'Completed Checkpoints',
   'Pending Checkpoints',
-  'Total Checkpoints',
+  'Total Checkpoints (by team class)',
   'Completion Percentage',
   'Last Updated',
 ]
@@ -201,7 +201,9 @@ export function transformTeamAttendanceRow(
 
   const reported = Boolean(verification?.reported)
   const photoIdChecked = Boolean(verification?.photo_id_checked)
-  const nocReceived = Boolean(verification?.noc_received)
+  // NOC Verification applies to external teams only.
+  const nocApplicable = !isInternal
+  const nocReceived = nocApplicable && Boolean(verification?.noc_received)
 
   const reportedTime = reported ? formatSheetTimestamp(verification?.reported_at) : ''
   const reportedBy = reported ? resolveVolunteerName(verification?.reported_by, adminMap) : ''
@@ -217,7 +219,10 @@ export function transformTeamAttendanceRow(
   const lastUpdated = formatSheetTimestamp(lastUpdatedTs)
 
   // Last updater
-  const lastUpdaterId = verification?.noc_received_by || verification?.photo_id_checked_by || verification?.reported_by
+  const lastUpdaterId =
+    (nocApplicable ? verification?.noc_received_by : null) ||
+    verification?.photo_id_checked_by ||
+    verification?.reported_by
   const lastUpdatedBy = lastUpdaterId ? resolveVolunteerName(lastUpdaterId, adminMap) : 'System'
 
   return [
@@ -240,7 +245,7 @@ export function transformTeamAttendanceRow(
     photoIdChecked ? 'Yes' : 'No',
     photoIdTime,
     photoIdBy,
-    nocReceived ? 'Yes' : 'No',
+    nocApplicable ? (nocReceived ? 'Yes' : 'No') : 'Not Required',
     nocTime,
     nocBy,
     lastUpdated,
@@ -284,15 +289,17 @@ export function transformAttendanceSummaryRow(
 
   const reported = Boolean(verification?.reported)
   const photoIdChecked = Boolean(verification?.photo_id_checked)
-  const nocReceived = Boolean(verification?.noc_received)
+  // Internal workflow: Identity (ID Card) + Reported. External: + NOC Verification.
+  const nocApplicable = !isInternal
+  const nocReceived = nocApplicable && Boolean(verification?.noc_received)
 
   let completed = 0
   if (reported) completed++
   if (photoIdChecked) completed++
   if (nocReceived) completed++
 
-  const pending = 3 - completed
-  const total = 3
+  const total = nocApplicable ? 3 : 2
+  const pending = total - completed
   const percentage = `${Math.round((completed / total) * 100 * 10) / 10}%`
   const lastUpdated = formatSheetTimestamp(verification?.updated_at || team.updated_at || team.created_at)
 
@@ -303,7 +310,7 @@ export function transformAttendanceSummaryRow(
     desk,
     reported ? 'Yes' : 'No',
     photoIdChecked ? 'Yes' : 'No',
-    nocReceived ? 'Yes' : 'No',
+    nocApplicable ? (nocReceived ? 'Yes' : 'No') : 'Not Required',
     completed,
     pending,
     total,

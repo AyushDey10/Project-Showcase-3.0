@@ -278,7 +278,7 @@ export function TeamsDirectory() {
                 {(
                   [
                     { id: 'all', label: 'All Statuses' },
-                    { id: 'completed', label: 'Completed (3/3)' },
+                    { id: 'completed', label: 'Completed' },
                     { id: 'in_progress', label: 'In Progress' },
                     { id: 'not_started', label: 'Not Started' },
                   ] as const
@@ -486,28 +486,29 @@ export function TeamsDirectory() {
                           </span>
                         </td>
 
-                        {/* Verification Checkpoints (Reported, Photo ID, NOC) */}
+                        {/* Verification checkpoints in workflow order: NOC → Identity → Reported */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             <StatusBadge
                               type="verification"
-                              field="reported"
-                              verified={team.reported}
-                              label="Reported"
+                              field="noc_received"
+                              verified={team.noc_received}
+                              label="NOC"
+                              notRequired={internal}
                               size="sm"
                             />
                             <StatusBadge
                               type="verification"
                               field="photo_id_checked"
                               verified={team.photo_id_checked}
-                              label="Photo ID"
+                              label="Identity"
                               size="sm"
                             />
                             <StatusBadge
                               type="verification"
-                              field="noc_received"
-                              verified={team.noc_received}
-                              label="NOC"
+                              field="reported"
+                              verified={team.reported}
+                              label="Reported"
                               size="sm"
                             />
                           </div>
